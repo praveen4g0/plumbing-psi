@@ -1,0 +1,37 @@
+apiVersion: v1
+baseDomain: domainxxx
+compute:
+- hyperthreading: Enabled
+  name: worker
+  platform:
+    openstack:
+      type: m1.xlarge
+  replicas: computereplicasxxx
+controlPlane:
+  hyperthreading: Enabled
+  name: master
+  platform: {}
+  replicas: 3
+metadata:
+  creationTimestamp: null
+  name: clusternamexxx
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineCIDR: 192.168.0.0/16
+  networkType: OpenShiftSDN
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  openstack:
+    cloud: "psi-pipelines"
+    computeFlavor: m1.xlarge
+    externalNetwork: networkxxx
+    lbFloatingIP: "ipxxx"
+    octaviaSupport: "0"
+    region: regionOne
+    trunkSupport: "1"
+pullSecret: 'pullsecretxxx'
+sshKey: |
+  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQFU+8vJTYwiDweqp5ONtZY1apciwlfnHLRS2aTFuIVGChaet3BBm51yZwd4apL7pJs98zR9loT7tP6UipjZLTSqUJZmhz+nQ+TNWl298G43F6JpgfQY5ETc+48zd/yfBK8E1MY0uX7//dsTsZRwwcx6kLy5b2BsfL8POvGXXWZ0v8KkS3D3jdg1973N+dvZtbkvTcqQvgrzRTWNnL6yHlx4fyIKzcZDnp2g1+U5S5huG9QDwt+oYidb7xsGMJkr6K8HWoI3VjfVenMVWGxQpgJ7zTLkkedITsel/1Jr2qtFygAQIsFPLPvV0keMQJohhEr3ydVtdoUmMim1dy+/Pb Generated-by-Nova
