@@ -51,8 +51,8 @@ $DIR/config/auth/01_config_map_secret.sh
 
 echo "Configuring OAuth"
 if [ -z $CI ]; then
-  oc apply -f $DIR/config/auth/02_prod_oauth.yaml
+  $DIR/config/auth/01_prod_auth.sh
 else
-  oc apply -f $DIR/config/auth/02_test_oauth.yaml
+  $DIR/config/auth/01_test_auth.sh
 fi
 
