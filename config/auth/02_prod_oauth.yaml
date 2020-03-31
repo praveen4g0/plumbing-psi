@@ -4,7 +4,7 @@ metadata:
   name: cluster
 spec:
   identityProviders:
-  - name: "Red Hat LDAP" 
+  - name: LDAP
     mappingMethod: claim 
     type: LDAP
     ldap:
