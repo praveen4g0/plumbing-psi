@@ -47,8 +47,6 @@ echo "Logging in to cluster $CLUSTER_NAME as kubeadmin"
 export KUBECONFIG=$DIR/cluster/$CLUSTER_NAME/auth/kubeconfig
 oc login -u kubeadmin -p $(cat $DIR/cluster/$CLUSTER_NAME/auth/kubeadmin-password)
 
-$DIR/config/auth/01_config_map_secret.sh
-
 echo "Configuring OAuth"
 if [ -z $CI ]; then
   $DIR/config/auth/01_prod_auth.sh
