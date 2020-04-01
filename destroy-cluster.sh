@@ -91,4 +91,4 @@ echo "Removing directory \"cluster/$CLUSTER_NAME\""
 rm -rf cluster/$CLUSTER_NAME
 
 echo "List of all OpenStack resources with name containing \"$CLUSTER_NAME\""
-sh $DIR/list_all_resources.sh $CLUSTER_NAME
+sh $DIR/list-all-resources.sh $CLUSTER_NAME

@@ -49,8 +49,8 @@ oc login -u kubeadmin -p $(cat $DIR/cluster/$CLUSTER_NAME/auth/kubeadmin-passwor
 
 echo "Configuring OAuth"
 if [ -z $CI ]; then
-  $DIR/config/auth/01_prod_auth.sh
+  $DIR/config/auth/01-prod-auth.sh
 else
-  $DIR/config/auth/01_test_auth.sh
+  $DIR/config/auth/01-test-auth.sh
 fi
 

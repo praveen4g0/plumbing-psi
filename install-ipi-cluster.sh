@@ -36,7 +36,7 @@ if [ -d cluster/$CLUSTER_NAME ]; then
 fi
 
 mkdir "cluster/$CLUSTER_NAME"
-cp install-config_template.yaml "cluster/$CLUSTER_NAME/install-config.yaml"
+cp install-config-template.yaml "cluster/$CLUSTER_NAME/install-config.yaml"
 
 sed -i "s/clusternamexxx/$CLUSTER_NAME/" "cluster/$CLUSTER_NAME/install-config.yaml"
 
