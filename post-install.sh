@@ -15,7 +15,7 @@ if [ -z $CLUSTER_NAME ]; then
 fi
 
 echo "Allocating a floating IP for cluster's ingress"
-INGRESS_PORT=$(openstack port list -f value -c Name | grep $CLUSTER_NAME |  grep ingress-port)
+INGRESS_PORT=$(openstack port list -f value -c Name | grep $CLUSTER_NAME- |  grep ingress-port)
 FIP=$(openstack floating ip create --description "$CLUSTER_NAME-ingress" -f value -c floating_ip_address --port $INGRESS_PORT $NETWORK)
 if [ $? != 0 ]; then
   echo "Failed to allocate a floating IP for ingress"
