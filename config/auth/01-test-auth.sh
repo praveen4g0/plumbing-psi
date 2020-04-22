@@ -13,11 +13,12 @@ oc create clusterrolebinding pipelinesdeveloper_basic_user --clusterrole=basic-u
 oc create clusterrolebinding pipelinesdeveloper_view --clusterrole=view --user=pipelinesdeveloper
 
 echo -e "Use one of the following users to login:\n"
-echo "USERNAME           | PASSWORD    "
-echo "-------------------|-------------"
-echo "user               | user        "
-echo "user1              | user1       "
-echo "...                | ...         "
-echo "user9              | user9       "
-echo "pipelinesdeveloper | developer   "
-echo "---------------------------------"
+echo "Username           | Password    | Cluster roles "
+echo "-------------------|-----------------------------------------"
+echo "user               | user        | default                   "
+echo "user1              | user1       | default                   "
+echo "...                | ...         | ...                       "
+echo "user9              | user9       | default                   "
+echo "pipelinesdeveloper | developer   | basic-user, view          "
+echo "-------------------------------------------------------------"
+
