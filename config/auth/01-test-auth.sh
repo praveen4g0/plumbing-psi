@@ -12,13 +12,17 @@ echo "Creating cluster role bindings"
 oc create clusterrolebinding pipelinesdeveloper_basic_user --clusterrole=basic-user --user=pipelinesdeveloper
 oc create clusterrolebinding pipelinesdeveloper_view --clusterrole=view --user=pipelinesdeveloper
 
+oc create clusterrolebinding consoledeveloper_self_provisioner --clusterrole=self-provisioner --user=consoledeveloper
+oc create clusterrolebinding consoledeveloper_view --clusterrole=view --user=consoledeveloper
+
 echo -e "Use one of the following users to login:\n"
 echo "Username           | Password    | Cluster roles "
 echo "-------------------|-----------------------------------------"
+echo "consoledeveloper   | developer   | self-provisioner, view    "
+echo "pipelinesdeveloper | developer   | basic-user, view          "
 echo "user               | user        | default                   "
 echo "user1              | user1       | default                   "
 echo "...                | ...         | ...                       "
 echo "user9              | user9       | default                   "
-echo "pipelinesdeveloper | developer   | basic-user, view          "
 echo "-------------------------------------------------------------"
 
