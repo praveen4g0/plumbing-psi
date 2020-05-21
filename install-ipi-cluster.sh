@@ -3,7 +3,7 @@
 CLUSTER_NAME=$1
 export AWS_PROFILE=${AWS_PROFILE:-"aws-pipelines"}
 export DOMAIN=${DOMAIN:-"tekton.codereadyqe.com"}
-export NETWORK=${NETWORK:-"provider_net_shared_3"}
+export NETWORK=${NETWORK:-"provider_net_cci_9"}
 export OS_CLOUD=${OS_CLOUD:-"psi-pipelines"}
 
 if [ -z $CLUSTER_NAME ]; then
