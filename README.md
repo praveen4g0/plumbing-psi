@@ -12,7 +12,7 @@ Prerequisites
 2. AWS account - although the scripts use PSI to deploy clusters, we use Amazon Route53 for DNS. Ask QE for account.
 3. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) - name your AWS credentials profile `aws-pipelines`
 4. PSI account - access is managed by Rover group [psi-pipelines-users](https://rover.redhat.com/groups/group/psi-pipelines-users). Ask group owner for access.
-5. [OpenStack CLI](https://pypi.org/project/python-openstackclient/) - this repo already contains `clouds.yaml` file, you still need to create `~/.config/openstack/secure.yaml` containing your Kerberos password.
+5. [OpenStack CLI](https://pypi.org/project/python-openstackclient/) - this repo already contains `clouds.yaml` file, you need to change username in it and create `~/.config/openstack/secure.yaml` containing your Kerberos password.
 6. OpenShift Installer binary on your `PATH`. You can download whatever version you need, scripts should work with all versions since 4.2. Browse the directories in [mirror.openshift.com](https://mirror.openshift.com/pub/openshift-v4/clients/), e.g. [stable 4.4](https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.4/) or [nightly 4.5](https://mirror.openshift.com/pub/openshift-v4/clients/ocp-dev-preview/latest-4.5/). 
 
 ```
