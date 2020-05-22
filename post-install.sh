@@ -23,7 +23,7 @@ if [ $? != 0 ]; then
 fi
 
 echo "Getting zone ID in Route53"
-ZONES=$(aws route53 list-hosted-zones)
+ZONES=$(aws route53 list-hosted-zones --output json)
 ZONE_ID=$(echo $ZONES | jq -r ".HostedZones[] | select(.Name==\"$DOMAIN.\") | .Id")
 
 if [ -z $ZONE_ID ]; then
@@ -32,7 +32,7 @@ if [ -z $ZONE_ID ]; then
 fi
 
 echo "Updating DNS records in Route53"
-RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Update A record for cluster API", "Changes": [ { "Action": "CREATE", "ResourceRecordSet": { "Name": "*.apps.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP'" } ] } } ] }')
+RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Update A record for cluster API", "Changes": [ { "Action": "CREATE", "ResourceRecordSet": { "Name": "*.apps.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP'" } ] } } ] }' --output json)
 if [ $? != 0 ]; then
   echo "Failed to update A record for cluster"
   echo "Releasing previously allocated floating IP"
@@ -53,4 +53,3 @@ if [ -z $CI ]; then
 else
   $DIR/config/auth/01-test-auth.sh
 fi
-

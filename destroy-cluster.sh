@@ -30,7 +30,7 @@ if [ -z $CLUSTER_NAME ]; then
 fi
 echo "Cluster name: $CLUSTER_NAME"
 
-if [ ! -f "$HOME/.config/openstack/secure.yaml" ] && [ ! -f "/etc/openstack/secure.yaml" ]; then 
+if [ ! -f "$HOME/.config/openstack/secure.yaml" ] && [ ! -f "/etc/openstack/secure.yaml" ]; then
   echo -n "File secure.yaml not found. See "
   echo "https://docs.openstack.org/openstacksdk/latest/user/config/configuration.html#config-files for more info."
   exit 2
@@ -53,7 +53,7 @@ if [ $? != 0 ]; then
 fi
 
 echo "Getting zone ID in Route53"
-ZONES=$(aws route53 list-hosted-zones)
+ZONES=$(aws route53 list-hosted-zones --output json)
 ZONE_ID=$(echo $ZONES | jq -r ".HostedZones[] | select(.Name==\"$DOMAIN.\") | .Id")
 
 if [ -z $ZONE_ID ]; then
@@ -65,7 +65,7 @@ echo "Deleting DNS records in Route53"
 FIP1=$(dig +short api.$CLUSTER_NAME.$DOMAIN)
 FIP2=$(dig +short x.apps.$CLUSTER_NAME.$DOMAIN)
 
-RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Delete A record for cluster API", "Changes": [ { "Action": "DELETE", "ResourceRecordSet": { "Name": "api.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP1'" } ] } } ] }')
+RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Delete A record for cluster API", "Changes": [ { "Action": "DELETE", "ResourceRecordSet": { "Name": "api.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP1'" } ] } } ] }' --output json)
 
 if [ $? != 0 ]; then
   echo "Failed to delete A records for the cluster"
@@ -75,7 +75,7 @@ fi
 echo "Waiting for DNS change to propagate"
 aws route53 wait resource-record-sets-changed --id $(echo $RESPONSE | jq -r '.ChangeInfo.Id')
 
-RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Delete A record for cluster ingress", "Changes": [ { "Action": "DELETE", "ResourceRecordSet": { "Name": "*.apps.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP2'" } ] } } ] }')
+RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Delete A record for cluster ingress", "Changes": [ { "Action": "DELETE", "ResourceRecordSet": { "Name": "*.apps.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP2'" } ] } } ] }' --output json)
 
 if [ $? != 0 ]; then
   echo "Failed to delete A records for the cluster, it's OK if previous installation failed."

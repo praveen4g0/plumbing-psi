@@ -14,7 +14,7 @@ if [ -z $CLUSTER_NAME ]; then
 fi
 echo "Cluster name: $CLUSTER_NAME"
 
-if [ ! -f "$HOME/.config/openstack/secure.yaml" ] && [ ! -f "/etc/openstack/secure.yaml" ]; then 
+if [ ! -f "$HOME/.config/openstack/secure.yaml" ] && [ ! -f "/etc/openstack/secure.yaml" ]; then
   echo -n "File secure.yaml not found. See "
   echo "https://docs.openstack.org/openstacksdk/latest/user/config/configuration.html#config-files for more info."
   exit 2
@@ -29,7 +29,7 @@ if [ -d cluster/$CLUSTER_NAME ]; then
   read -r -n 1 -p "Directory \"cluster/$CLUSTER_NAME\" already exists. Do you want to delete it? (Yy|Nn) " REPLY
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
-    rm -rf "cluster/$CLUSTER_NAME" 
+    rm -rf "cluster/$CLUSTER_NAME"
   else
     exit 4
   fi
@@ -62,16 +62,15 @@ sed -i "s/pullsecretxxx/$(cat $PULL_SECRET_FILE)/" cluster/$CLUSTER_NAME/install
 #sed -i "s/api.openshift.com\/api\/upgrades_info\/v1\/graph/openshift-release.svc.ci.openshift.org\/graph/" $CLUSTER_NAME/manifests/cvo-overrides.yaml
 
 echo "Getting zone ID in Route53"
-ZONES=$(aws route53 list-hosted-zones)
+ZONES=$(aws route53 list-hosted-zones --output json)
 ZONE_ID=$(echo $ZONES | jq -r ".HostedZones[] | select(.Name==\"$DOMAIN.\") | .Id")
-
 if [ -z $ZONE_ID ]; then
   echo "Domain $DOMAIN not found in Route53"
   exit 20
 fi
 
 echo "Updating DNS records in Route53"
-RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Update A record for cluster API", "Changes": [ { "Action": "CREATE", "ResourceRecordSet": { "Name": "api.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP'" } ] } } ] }')
+RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Update A record for cluster API", "Changes": [ { "Action": "CREATE", "ResourceRecordSet": { "Name": "api.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP'" } ] } } ] }' --output json)
 if [ $? != 0 ]; then
   echo "Failed to update A record for cluster"
   echo "Releasing previously allocated floating IP"
