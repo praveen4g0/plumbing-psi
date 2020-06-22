@@ -1,0 +1,132 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: release-tests
+spec:
+  params:
+  - name: OPENSHIFT_INSTALLER_IMAGE
+    type: string
+    description: openshift installer image
+  - name: OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE
+    type: string
+    description: openshift installer os image
+  - name: CLUSTER_NAME
+    type: string
+    description: Cluster Name
+  - name: REPLICAS
+    type: string
+    description: How many replicas for the master and worker node
+  - name: OPERATOR-ENV
+    type: string
+    description: openshift pipelines operator environment
+  - name: RELEASE-TESTS-IMAGE
+    type: string
+    description: release-tests latest image
+  - name: UPLOADER-HOST
+    type: string
+    description: To upload reports & logs to uploader hosts
+  workspaces:
+  - name: install-dir
+  - name: aws-secrets
+  - name: psi-secrets
+  - name: configmap
+  tasks:
+  - name: provision-cluster-psi
+    taskRef:
+      name: provision-cluster-psi
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: aws-secrets
+      workspace: aws-secrets
+    - name: psi-secrets
+      workspace: psi-secrets
+    params:
+    - name: CLUSTER_NAME
+      value: $(params.CLUSTER_NAME)
+    - name: REPLICAS
+      value: $(params.REPLICAS)
+    - name: OPENSHIFT_INSTALLER_IMAGE
+      value: $(params.OPENSHIFT_INSTALLER_IMAGE)
+    - name: OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE
+      value: $(params.OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE)
+  - name: pipelines-operator-subscription
+    taskRef:
+      name: subscribe-to-pipelines-operator
+    runAfter:
+    - provision-cluster-psi
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: configmap
+      workspace: configmap
+  - name: release-tests-pipelines
+    taskRef:
+      name: release-tests-pipelines
+    retries: 1
+    params:
+    - name: OPERATOR-ENV
+      value: $(params.OPERATOR-ENV)
+    - name: IMAGE
+      value: $(params.RELEASE-TESTS-IMAGE)
+    - name: CLUSTER_NAME
+      value: $(params.CLUSTER_NAME)
+    - name: UPLOADER-HOST
+      value: $(params.UPLOADER-HOST)
+    runAfter:
+    - pipelines-operator-subscription
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+  - name: release-tests-triggers
+    taskRef:
+      name: release-tests-triggers
+    retries: 1
+    params:
+      - name: OPERATOR-ENV
+        value: $(params.OPERATOR-ENV)
+      - name: IMAGE
+        value: $(params.RELEASE-TESTS-IMAGE)
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+      - name: UPLOADER-HOST
+        value: $(params.UPLOADER-HOST)
+    runAfter:
+      - pipelines-operator-subscription
+    workspaces:
+      - name: install-dir
+        workspace: install-dir
+  - name: uninstall-pipelines-operator
+    taskRef:
+      name: uninstall-pipelines-operator
+    runAfter:
+    - release-tests-pipelines
+    - release-tests-triggers
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: configmap
+      workspace: configmap
+  - name: destroy-cluster-psi
+    taskRef:
+        name: destroy-cluster-psi
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+      - name: OPENSHIFT_INSTALLER_IMAGE
+        value: $(params.OPENSHIFT_INSTALLER_IMAGE)
+    runAfter:
+      - uninstall-pipelines-operator
+    workspaces:
+      - name: install-dir
+        workspace: install-dir
+      - name: aws-secrets
+        workspace: aws-secrets
+      - name: psi-secrets
+        workspace: psi-secrets
