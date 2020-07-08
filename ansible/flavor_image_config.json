@@ -1,0 +1,18 @@
+{
+    "windows10": {
+        "flavor": "ci.c1.xlarge",
+        "image": "test-tkn-windows10-snapshot"
+    },
+    "rhel8": {
+        "flavor": "m1.small",
+        "image": "test-tkn-rhel8.2-snapshot"
+    },
+    "ubuntu16": {
+        "flavor": "m1.small",
+        "image": "test-tkn-ubuntu16.04-snapshot"
+    },
+    "fedora31": {
+        "flavor": "m1.small",
+        "image": "test-tkn-fedora31-snapshot"
+    }
+}

@@ -1,0 +1,19 @@
+---
+- name: download the tkn zip file to ansible controller
+  hosts: localhost
+  tasks:
+    - name: Download tkn cli zip file locally
+      get_url:
+        url: https://mirror.openshift.com/pub/openshift-v4/clients/pipeline/{{ lookup('env','TKN_VERSION') }}/tkn-windows-amd64-{{ lookup('env','TKN_VERSION') }}.zip
+        dest: ./
+- name: Install tkn cli on Windows
+  hosts: test-host
+  tasks:
+    - name: move the cli zip to windows machine
+      win_copy:
+        src: tkn-windows-amd64-{{ lookup('env','TKN_VERSION') }}.zip
+        dest: C:\Users\Admin\Downloads\tkn-windows-amd64-{{ lookup('env','TKN_VERSION') }}.zip
+    - name: unzip the downloaded cli to path
+      win_unzip:
+        src: C:\Users\Admin\Downloads\tkn-windows-amd64-{{ lookup('env','TKN_VERSION') }}.zip
+        dest: C:\Program Files (x86)\tekton

@@ -1,0 +1,24 @@
+---
+- name: Run upstream cli e2e tests on windows VM
+  hosts: test-host
+  tasks:
+    - name: Set an environment variable for all users
+      win_environment:
+        state: present
+        name: TEST_CLIENT_BINARY
+        value: tkn
+        level: machine
+    - name: clone the upstream tekton cli repository
+      win_shell: |
+        cd C:\Users\Admin\workspace
+        git config --global http.sslVerify "false"
+        git clone https://github.com/tektoncd/cli.git
+        cd cli
+        git checkout master
+        go build -o tkn github.com/tektoncd/cli/cmd/tkn
+        ren "tkn" "tkn.exe"
+        oc login -u {{ lookup('env','OCP_USERNAME') }} -p {{ lookup('env','OCP_PASSWORD') }} {{ lookup('env','OCP_SERVER_ADDRESS') }} --insecure-skip-tls-verify=true
+        go test -v -count=1 -tags=e2e -timeout=20m ./test/e2e/...
+      register: output
+      ignore_errors: True
+    - debug: var=output.stdout_lines

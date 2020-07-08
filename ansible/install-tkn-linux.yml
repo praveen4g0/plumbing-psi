@@ -1,0 +1,19 @@
+---
+- name: Install tkn cli on linux
+  hosts: test-host
+  tasks:
+    - name: Download the tar file for linux
+      get_url:
+        url: https://mirror.openshift.com/pub/openshift-v4/clients/pipeline/{{ lookup('env','TKN_VERSION') }}/tkn-linux-amd64-{{ lookup('env','TKN_VERSION') }}.tar.gz
+        dest: /home/{{ ansible_user }}/workspace/tkn-linux-amd64-{{ lookup('env','TKN_VERSION') }}.tar.gz
+    - name: untar the downloaded file
+      unarchive:
+        src: /home/{{ ansible_user }}/workspace/tkn-linux-amd64-{{ lookup('env','TKN_VERSION') }}.tar.gz
+        dest: /home/{{ ansible_user }}/workspace
+        remote_src: yes
+    - name: move the binary to /usr/local/bin
+      shell:
+        cmd: mv tkn /usr/local/bin
+        chdir: /home/{{ ansible_user }}/workspace
+      become: yes
+      become_method: sudo

@@ -1,0 +1,16 @@
+---
+- name: Run release test on windows VM
+  hosts: test-host
+  tasks:
+    - name: clone the release tests repository
+      win_shell: |
+        cd C:\Users\Admin\workspace
+        git config --global http.sslVerify "false"
+        git clone https://github.com/openshift-pipelines/release-tests.git
+        cd release-tests
+        git checkout master
+        oc login -u {{ lookup('env','OCP_USERNAME') }} -p {{ lookup('env','OCP_PASSWORD') }} {{ lookup('env','OCP_SERVER_ADDRESS') }} --insecure-skip-tls-verify=true
+        gauge run --env "test" --log-level=debug --verbose specs/cli
+      register: output
+      ignore_errors: True
+    - debug: var=output.stdout_lines

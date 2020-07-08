@@ -1,0 +1,23 @@
+---
+- name: Create VM
+  hosts: localhost
+  tasks:
+    - name: launch an instance
+      os_server:
+        state: present
+        auth:
+          auth_url: "{{ lookup('env','OS_AUTH_URL') }}"
+          username: "{{ lookup('env','OS_USERNAME') }}"
+          password: "{{ lookup('env','OS_PASSWORD') }}"
+          project_name: "{{ lookup('env','OS_PROJECT_NAME') }}"
+        name: "{{ lookup('env','VM_NAME') }}"
+        image: "{{ lookup('env','IMAGE_ID') }}"
+        key_name: "{{ lookup('env','KEYPAIR_NAME') }}"
+        timeout: 1000
+        flavor: "{{ lookup('env','FLAVOR_ID') }}"
+        security_groups: 
+          - ssh
+          - default
+          - allow_RDP
+        auto_ip: yes
+        network: "{{ lookup('env','NETWORK') }}"
