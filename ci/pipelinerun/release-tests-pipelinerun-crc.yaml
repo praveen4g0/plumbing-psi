@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: openshift-pipelines-e2e-tests-crc-
+spec:
+  pipelineRef:
+    name: release-tests-crc
+  timeout: 2h
+  params:
+  - name: CLUSTER_NAME
+    value: e2ecrc
+  - name: OPERATOR-ENV
+    value: prod
+  - name: RELEASE-TESTS-IMAGE
+    value: docker.io/praveen4g0/release-tests:v0.0.7
+  - name: UPLOADER-HOST
+    value: http://uploader-uploader.apps.cicd.tekton.codereadyqe.com
+  workspaces:
+  - name: install-dir
+    persistentvolumeclaim:
+      claimName: install-dir
+  - name: cnv-cluster-secrets
+    secret:
+      secretName: cnv-cluster
+  - name: configmap
+    configMap:
+       name: subscription-store
+       items:
+       - key: subscription
+         path: subscription.yaml

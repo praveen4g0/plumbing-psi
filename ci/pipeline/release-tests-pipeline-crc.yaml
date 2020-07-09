@@ -1,0 +1,104 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: release-tests-crc
+spec:
+  params:
+  - name: CLUSTER_NAME
+    description: Cluster name
+  - name: OPERATOR-ENV
+    description: OpenShift Pipelines operator environment
+  - name: RELEASE-TESTS-IMAGE
+    description: release-tests latest image
+  - name: UPLOADER-HOST
+    description: To upload reports & logs to uploader hosts
+  workspaces:
+  - name: install-dir
+  - name: cnv-cluster-secrets
+  - name: configmap
+  tasks:
+  - name: provision-crc-cluster
+    taskRef:
+      name: provision-crc-cluster
+    params:
+    - name: CLUSTER_NAME
+      value: $(params.CLUSTER_NAME)
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: cnv-cluster-secrets
+      workspace: cnv-cluster-secrets
+  - name: pipelines-operator-subscription
+    taskRef:
+      name: subscribe-to-pipelines-operator
+    runAfter:
+    - provision-crc-cluster
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: configmap
+      workspace: configmap
+  - name: release-tests-pipelines
+    taskRef:
+      name: release-tests-pipelines
+    retries: 1
+    params:
+    - name: OPERATOR-ENV
+      value: $(params.OPERATOR-ENV)
+    - name: IMAGE
+      value: $(params.RELEASE-TESTS-IMAGE)
+    - name: CLUSTER_NAME
+      value: $(params.CLUSTER_NAME)
+    - name: UPLOADER-HOST
+      value: $(params.UPLOADER-HOST)
+    runAfter:
+    - pipelines-operator-subscription
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+  - name: release-tests-triggers
+    taskRef:
+      name: release-tests-triggers
+    retries: 1
+    params:
+      - name: OPERATOR-ENV
+        value: $(params.OPERATOR-ENV)
+      - name: IMAGE
+        value: $(params.RELEASE-TESTS-IMAGE)
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+      - name: UPLOADER-HOST
+        value: $(params.UPLOADER-HOST)
+    runAfter:
+      - pipelines-operator-subscription
+    workspaces:
+      - name: install-dir
+        workspace: install-dir
+  - name: uninstall-pipelines-operator
+    taskRef:
+      name: uninstall-pipelines-operator
+    runAfter:
+    - release-tests-pipelines
+    - release-tests-triggers
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: configmap
+      workspace: configmap
+  - name: destroy-crc-cluster
+    taskRef:
+        name: destroy-crc-cluster
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+    runAfter:
+      - uninstall-pipelines-operator
+    workspaces:
+      - name: install-dir
+        workspace: install-dir

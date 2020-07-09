@@ -6,6 +6,7 @@ spec:
   workspaces:
     - name: install-dir
       mountPath: "/tekton/home/"
+      readOnly: true
     - name: configmap
   params:
     - name: CLUSTER_NAME

@@ -6,6 +6,7 @@ spec:
   workspaces:
     - name: install-dir
       mountPath: "/tekton/home/"
+      readOnly: true
   params:
   - name: OPERATOR-ENV
     type: string

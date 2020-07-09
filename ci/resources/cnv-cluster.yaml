@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cnv-cluster
+type: Opaque
+data:
+  config: $KUBECONFIG
+stringData:
+  password: $KUBEADMIN-PASSWORD

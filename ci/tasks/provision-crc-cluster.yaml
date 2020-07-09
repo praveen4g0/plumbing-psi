@@ -1,0 +1,80 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: provision-crc-cluster
+spec:
+  workspaces:
+    - name: install-dir
+      mountPath: /tekton/home/
+    - name: cnv-cluster-secrets
+      mountPath: /tekton/home/.kube
+  params:
+    - name: CLUSTER_NAME
+      description: Cluster name
+    - name: CRC_BUNDLE
+      description: The system bundle used for deployment of the OpenShift cluster
+      default: ocp450rc6
+    - name: CRC_CPUS
+      description: Number of CPU cores to allocate to the OpenShift cluster
+      default: "4"
+    - name: CRC_MEMORY
+      description: GiB of memory to allocate to the OpenShift cluster
+      default: 9Gi
+  steps:
+    - name: prepare-crc-cluster-yaml
+      workingDir: $(workspaces.install-dir.path)
+      image: registry.access.redhat.com/ubi8/ubi
+      script: |
+        #!/usr/bin/env bash
+        set -e -u -o pipefail
+
+        mkdir -p "cluster/$(params.CLUSTER_NAME)"
+
+        # Create crc-cluster.yaml
+        [[ -f "cluster/$(params.CLUSTER_NAME)/crc-cluster.yaml" ]] && \
+        echo "Error: CRC cluster already exists" && exit 1
+        
+        echo "Create CrcCluster yaml with provided config"
+        cat << EOF > "cluster/$(params.CLUSTER_NAME)/crc-cluster.yaml"
+        apiVersion: crc.developer.openshift.io/v1alpha1
+        kind: CrcCluster
+        metadata:
+          name: $(params.CLUSTER_NAME)
+          namespace: crc
+        spec:
+          cpu: $(params.CRC_CPUS)
+          memory: $(params.CRC_MEMORY)
+          pullSecret: $(echo $PULL_SECRET | base64 -w 0)
+          bundleName: $(params.CRC_BUNDLE)
+        EOF
+      env:
+        - name: PULL_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: openshift-install
+              key: pull-secret
+    - name: create-crc-cluster
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      workingDir: $(workspaces.install-dir.path)
+      script: |
+        #!/usr/bin/env bash
+        set -e -u -o pipefail
+
+        export KUBECONFIG=/tekton/home/.kube/config
+        export AUTH_PATH="cluster/$(params.CLUSTER_NAME)/auth"
+
+        echo "Create CRC cluster on remote cluster"
+        oc create -f "cluster/$(params.CLUSTER_NAME)/crc-cluster.yaml"
+        echo "Wait up to 30 min for CRC cluster to get into Ready state"
+        oc wait --for=condition=Ready crc/$(params.CLUSTER_NAME) -n crc --timeout=1800s
+
+        mkdir -p "$AUTH_PATH"
+        echo "Store kube:admin password locally"
+        oc get crc $(params.CLUSTER_NAME) -n crc -o jsonpath={.status.kubeAdminPassword} > "$AUTH_PATH/kubeadmin-password"
+        echo "Store kubeconfig locally"
+        oc get crc $(params.CLUSTER_NAME) -n crc -o jsonpath={.status.kubeconfig} | base64 -d > "$AUTH_PATH/kubeconfig"
+        
+        CONSOLE_URL=$(oc get crc $(params.CLUSTER_NAME) -n crc -o jsonpath={.status.consoleURL})
+        echo "Your CRC is ready on $CONSOLE_URL"
+
+        oc get clusterversion --kubeconfig "$AUTH_PATH/kubeconfig"

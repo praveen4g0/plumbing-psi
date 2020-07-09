@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: destroy-crc-cluster
+spec:
+  workspaces:
+    - name: install-dir
+      mountPath: /tekton/home/
+    - name: cnv-cluster-kubeconfig
+      mountPath: /tekton/home/.kube
+  params:
+    - name: CLUSTER_NAME
+      description: Cluster name
+  steps:
+    - name: destroy-crc-cluster
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      workingDir: $(workspaces.install-dir.path)
+      script: |
+        #!/usr/bin/env bash
+        set -e -u -o pipefail
+
+        ls -al /tekton/home
+
+        export KUBECONFIG=/tekton/home/.kube/config
+
+        oc whoami
+        oc cluster-info
+        oc delete crc $(params.CLUSTER_NAME) -n crc
+
+        rm -rf "cluster/$(params.CLUSTER_NAME)"
