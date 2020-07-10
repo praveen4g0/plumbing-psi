@@ -20,6 +20,9 @@ spec:
     - name: CRC_MEMORY
       description: GiB of memory to allocate to the OpenShift cluster
       default: 9Gi
+    - name: CRC_START_TIMEOUT
+      description: The length of time to wait before giving up. Zero means check once and don't wait, negative means wait for a week.
+      default: 30m
   steps:
     - name: prepare-crc-cluster-yaml
       workingDir: $(workspaces.install-dir.path)
@@ -65,8 +68,8 @@ spec:
 
         echo "Create CRC cluster on remote cluster"
         oc create -f "cluster/$(params.CLUSTER_NAME)/crc-cluster.yaml"
-        echo "Wait up to 30 min for CRC cluster to get into Ready state"
-        oc wait --for=condition=Ready crc/$(params.CLUSTER_NAME) -n crc --timeout=1800s
+        echo "Wait up to $(params.CRC_START_TIMEOUT) for CRC cluster to get into Ready state"
+        oc wait --for=condition=Ready crc/$(params.CLUSTER_NAME) -n crc --timeout=$(params.CRC_START_TIMEOUT)
 
         mkdir -p "$AUTH_PATH"
         echo "Store kube:admin password locally"
