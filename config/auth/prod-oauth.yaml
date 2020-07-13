@@ -21,3 +21,6 @@ spec:
         name: redhat-ca-config-map
       insecure: false 
       url: "ldap://ldap.corp.redhat.com:389/ou=users,dc=redhat,dc=com?uid?sub?(memberof=cn=psi-pipelines-users,ou=adhoc,ou=managedGroups,dc=redhat,dc=com)"
+  tokenConfig:
+    accessTokenMaxAgeSeconds: 8640000
+

@@ -82,3 +82,32 @@ echo "Waiting for DNS change to propagate"
 aws route53 wait resource-record-sets-changed --id $(echo $RESPONSE | jq -r '.ChangeInfo.Id')
 
 openshift-install --dir=cluster/$CLUSTER_NAME --log-level debug create cluster
+
+echo "Allocating a floating IP for cluster's ingress"
+INGRESS_PORT=$(openstack port list -f value -c Name | grep $CLUSTER_NAME- |  grep ingress-port)
+FIP=$(openstack floating ip create --description "$CLUSTER_NAME-ingress" -f value -c floating_ip_address --port $INGRESS_PORT $NETWORK)
+if [ $? != 0 ]; then
+  echo "Failed to allocate a floating IP for ingress"
+  exit 10
+fi
+
+echo "Getting zone ID in Route53"
+ZONES=$(aws route53 list-hosted-zones --output json)
+ZONE_ID=$(echo $ZONES | jq -r ".HostedZones[] | select(.Name==\"$DOMAIN.\") | .Id")
+
+if [ -z $ZONE_ID ]; then
+  echo "Domain $DOMAIN not found in Route53"
+  exit 20
+fi
+
+echo "Updating DNS records in Route53"
+RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Update A record for cluster API", "Changes": [ { "Action": "CREATE", "ResourceRecordSet": { "Name": "*.apps.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP'" } ] } } ] }' --output json)
+if [ $? != 0 ]; then
+  echo "Failed to update A record for cluster"
+  echo "Releasing previously allocated floating IP"
+  openstack floating ip delete $FIP
+  exit 25
+fi
+
+echo "Waiting for DNS change to propagate"
+aws route53 wait resource-record-sets-changed --id $(echo $RESPONSE | jq -r '.ChangeInfo.Id')

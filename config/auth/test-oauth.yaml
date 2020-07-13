@@ -12,3 +12,6 @@ spec:
     htpasswd:
       fileData:
         name: htpass-secret
+  tokenConfig:
+    accessTokenMaxAgeSeconds: 8640000
+
