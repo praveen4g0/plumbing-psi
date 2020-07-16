@@ -31,14 +31,13 @@ spec:
         #!/usr/bin/env bash
         set -e -u -o pipefail
 
-        mkdir -p "cluster/$(params.CLUSTER_NAME)"
-
-        # Create crc-cluster.yaml
-        [[ -f "cluster/$(params.CLUSTER_NAME)/crc-cluster.yaml" ]] && \
+        [[ -d "$(params.CLUSTER_NAME)" ]] && \
         echo "Error: CRC cluster already exists" && exit 1
         
+        mkdir -p "$(params.CLUSTER_NAME)"
+
         echo "Create CrcCluster yaml with provided config"
-        cat << EOF > "cluster/$(params.CLUSTER_NAME)/crc-cluster.yaml"
+        cat << EOF > "$(params.CLUSTER_NAME)/crc-cluster.yaml"
         apiVersion: crc.developer.openshift.io/v1alpha1
         kind: CrcCluster
         metadata:
@@ -64,10 +63,10 @@ spec:
         set -e -u -o pipefail
 
         export KUBECONFIG=/tekton/home/.kube/config
-        export AUTH_PATH="cluster/$(params.CLUSTER_NAME)/auth"
+        export AUTH_PATH="$(params.CLUSTER_NAME)/auth"
 
         echo "Create CRC cluster on remote cluster"
-        oc create -f "cluster/$(params.CLUSTER_NAME)/crc-cluster.yaml"
+        oc create -f "$(params.CLUSTER_NAME)/crc-cluster.yaml"
         echo "Wait up to $(params.CRC_START_TIMEOUT) for CRC cluster to get into Ready state"
         oc wait --for=condition=Ready crc/$(params.CLUSTER_NAME) -n crc --timeout=$(params.CRC_START_TIMEOUT)
 

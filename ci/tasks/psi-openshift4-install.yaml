@@ -89,8 +89,8 @@ spec:
         EOF
         [[ -f install-config.yaml ]]
 
-        mkdir -p "cluster/$CLUSTER_NAME"
-        cp install-config.yaml "cluster/$CLUSTER_NAME/install-config.yaml"
+        mkdir -p "$CLUSTER_NAME"
+        cp install-config.yaml "$CLUSTER_NAME/install-config.yaml"
 
         echo "Allocating a floating IP for cluster's API"
         FIP=$(openstack floating ip create --description "$CLUSTER_NAME-api" -f value -c floating_ip_address $NETWORK)
@@ -99,7 +99,7 @@ spec:
           exit 10
         fi
 
-        sed -i "s/ipxxx/$FIP/" cluster/$CLUSTER_NAME/install-config.yaml
+        sed -i "s/ipxxx/$FIP/" $CLUSTER_NAME/install-config.yaml
 
         echo "Getting zone ID in Route53"
         ZONES=$(aws route53 list-hosted-zones --output json)
@@ -145,7 +145,7 @@ spec:
         # sleep 200
 
         echo -n "Trying to install openshift cluster"
-        /usr/local/bin/openshift-install --dir=cluster/$(params.CLUSTER_NAME) create cluster --log-level=debug
+        /usr/local/bin/openshift-install --dir=$(params.CLUSTER_NAME) create cluster --log-level=debug
     - name: post-install
       workingDir: $(workspaces.install-dir.path)
       image: docker.io/praveen4g0/openstack-aws-cli:v0.0.5
@@ -156,8 +156,8 @@ spec:
         export AWS_PROFILE=${AWS_PROFILE:-"aws-pipelines"}
         CLUSTER_NAME=$(params.CLUSTER_NAME)
 
-        DOMAIN=$(jq -r '.base_domain' "cluster/$CLUSTER_NAME/terraform.tfvars.json")
-        NETWORK=$(jq -r '."*installconfig.InstallConfig".config.platform.openstack.externalNetwork' "cluster/$CLUSTER_NAME/.openshift_install_state.json")
+        DOMAIN=$(jq -r '.base_domain' "$CLUSTER_NAME/terraform.tfvars.json")
+        NETWORK=$(jq -r '."*installconfig.InstallConfig".config.platform.openstack.externalNetwork' "$CLUSTER_NAME/.openshift_install_state.json")
 
         echo "Allocating a floating IP for cluster's ingress"
         INGRESS_PORT=$(openstack port list -f value -c Name | grep $CLUSTER_NAME- |  grep ingress-port)
@@ -197,12 +197,12 @@ spec:
         CLUSTER_NAME=$(params.CLUSTER_NAME)
 
         echo "Logging in to cluster $CLUSTER_NAME as kubeadmin"
-        export KUBECONFIG=cluster/$CLUSTER_NAME/auth/kubeconfig
+        export KUBECONFIG=$CLUSTER_NAME/auth/kubeconfig
 
         # Sometime the url can let us down, so let's add a counter
         i=1
         while [[ $i -le 10 ]];do
-          oc login -u kubeadmin -p $(cat cluster/$CLUSTER_NAME/auth/kubeadmin-password) --insecure-skip-tls-verify=true && break
+          oc login -u kubeadmin -p $(cat $CLUSTER_NAME/auth/kubeadmin-password) --insecure-skip-tls-verify=true && break
           sleep 5
          (( i++ ))
         done
