@@ -1,0 +1,59 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: subscribe-to-pipelines-operator
+spec:
+  workspaces:
+    - name: install-dir
+      mountPath: "/tekton/home/"
+      readOnly: true
+    - name: configmap
+  params:
+    - name: CLUSTER_NAME
+      type: string
+      description: cluster name
+  steps:
+    - name: subscribe-to-operator
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      workingDir: $(workspaces.install-dir.path)
+      script: |
+          #!/usr/bin/env bash
+          set -e -u -o pipefail
+          export KUBECONFIG=cluster/$(params.CLUSTER_NAME)/auth/kubeconfig
+
+          echo -n "Subscribing to openshift pipelines operator...."
+          oc apply -f $(workspaces.configmap.path)/subscription.yaml
+
+          for i in {1..150}; do  # timeout after 5 minutes
+            pods="$(oc get pods -n openshift-operators --no-headers 2>/dev/null | wc -l)"
+            if [[ "${pods}" -eq 1 ]]; then
+              echo -e "\nWaiting for Pipelines operator pod"
+              oc wait --for=condition=Ready -n openshift-operators -l name=openshift-pipelines-operator pod --timeout=5m
+              retval=$?
+              if [[ "${retval}" -gt 0 ]]; then exit "${retval}"; else break; fi
+            fi
+            if [[ "${i}" -eq 150 ]]; then
+              echo "Timeout: pod was not created."
+              exit 2
+            fi
+            echo -n "."
+            sleep 2
+          done
+
+          for i in {1..150}; do  # timeout after 5 minutes
+            pods="$(oc get pods -n openshift-pipelines --no-headers 2>/dev/null | wc -l)"
+            if [[ "${pods}" -eq 4 ]]; then
+              echo -e "\nWaiting for Pipelines and Triggers pods"
+              oc wait --for=condition=Ready -n openshift-pipelines pod --timeout=5m \
+                -l 'app in (tekton-pipelines-controller,tekton-pipelines-webhook,tekton-triggers-controller,
+                tekton-triggers-webhook)'
+              retval=$?
+              if [[ "${retval}" -gt 0 ]]; then exit "${retval}"; else break; fi
+            fi
+            if [[ "${i}" -eq 150 ]]; then
+              echo "Timeout: pod was not created."
+              exit 2
+            fi
+            echo -n "."
+            sleep 2
+          done
