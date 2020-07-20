@@ -15,4 +15,3 @@ data:
       name: $NAME
       source: $SOURCE
       sourceNamespace: openshift-marketplace
-      startingCSV: $CSV

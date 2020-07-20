@@ -9,6 +9,8 @@ spec:
   params:
   - name: CLUSTER_NAME
     value: e2ecrc
+  - name: CRC_BUNDLE
+    value: ocp450rc6  
   - name: OPERATOR-ENV
     value: prod
   - name: RELEASE-TESTS-IMAGE

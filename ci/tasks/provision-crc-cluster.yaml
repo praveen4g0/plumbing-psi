@@ -80,4 +80,7 @@ spec:
         CONSOLE_URL=$(oc get crc $(params.CLUSTER_NAME) -n crc -o jsonpath={.status.consoleURL})
         echo "Your CRC is ready on $CONSOLE_URL"
 
+        API_URL=$(oc get crc $(params.CLUSTER_NAME) -n crc -o jsonpath={.status.apiURL})
+        echo "Login into CRC cluster using this command: 'oc login -u kubeadmin -p $(cat $AUTH_PATH/kubeadmin-password) $API_URL'"
+
         oc get clusterversion --kubeconfig "$AUTH_PATH/kubeconfig"

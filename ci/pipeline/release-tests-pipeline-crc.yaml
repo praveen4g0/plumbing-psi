@@ -12,6 +12,8 @@ spec:
     description: release-tests latest image
   - name: UPLOADER-HOST
     description: To upload reports & logs to uploader hosts
+  - name: CRC_BUNDLE
+    description: The system bundle used for deployment of the OpenShift cluster   
   workspaces:
   - name: install-dir
   - name: cnv-cluster-secrets
@@ -23,6 +25,8 @@ spec:
     params:
     - name: CLUSTER_NAME
       value: $(params.CLUSTER_NAME)
+    - name: CRC_BUNDLE
+      value: $(params.CRC_BUNDLE)  
     workspaces:
     - name: install-dir
       workspace: install-dir
