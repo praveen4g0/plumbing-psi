@@ -80,5 +80,5 @@ spec:
   volumes:
   - name: source
     gitRepo:
-      repository: https://github.com/praveen4g0/release-tests.git
-      revision: v2
+      repository: https://github.com/openshift-pipelines/release-tests.git
+      revision: master
