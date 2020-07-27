@@ -14,13 +14,16 @@ spec:
   - name: OPERATOR-ENV
     value: prod
   - name: RELEASE-TESTS-IMAGE
-    value: docker.io/praveen4g0/release-tests:v0.0.7
+    value: docker.io/praveen4g0/release-tests:v0.0.8
   - name: UPLOADER-HOST
     value: http://uploader-uploader.apps.cicd.tekton.codereadyqe.com
   workspaces:
   - name: install-dir
     persistentvolumeclaim:
       claimName: install-dir
+  - name: plumbing-git
+    persistentvolumeclaim:
+      claimName: plumbing-git
   - name: cnv-cluster-secrets
     secret:
       secretName: cnv-cluster

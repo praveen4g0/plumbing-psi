@@ -18,6 +18,7 @@ spec:
   - name: install-dir
   - name: cnv-cluster-secrets
   - name: configmap
+  - name: plumbing-git
   tasks:
   - name: provision-crc-cluster
     taskRef:
@@ -32,6 +33,39 @@ spec:
       workspace: install-dir
     - name: cnv-cluster-secrets
       workspace: cnv-cluster-secrets
+  - name: clone-plumbing-git
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    runAfter:
+    - provision-crc-cluster  
+    params:
+      - name: url
+        value: https://gitlab.cee.redhat.com/tekton/plumbing.git
+      - name: deleteExisting
+        value: "true"
+      - name: sslVerify
+        value: "false"
+      - name: subdirectory
+        value: e2e-crc
+    workspaces:
+    - name: output
+      workspace: plumbing-git    
+  - name: setup-testing-accounts
+    taskRef:
+      name: setup-testing-accounts
+    runAfter:
+    - clone-plumbing-git
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+      - name: SUBDIR
+        value: e2e-crc
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: plumbing-git
+      workspace: plumbing-git
   - name: pipelines-operator-subscription
     taskRef:
       name: subscribe-to-pipelines-operator
@@ -60,6 +94,7 @@ spec:
       value: $(params.UPLOADER-HOST)
     runAfter:
     - pipelines-operator-subscription
+    - setup-testing-accounts
     workspaces:
     - name: install-dir
       workspace: install-dir
@@ -78,6 +113,7 @@ spec:
         value: $(params.UPLOADER-HOST)
     runAfter:
       - pipelines-operator-subscription
+      - setup-testing-accounts
     workspaces:
       - name: install-dir
         workspace: install-dir

@@ -33,7 +33,7 @@ spec:
         export OS_CLOUD=${OS_CLOUD:-"psi-pipelines"}
 
         echo "Running \"openshift-install destroy cluster\""
-        /usr/local/bin/openshift-install --dir=cluster/$(params.CLUSTER_NAME) --log-level debug destroy cluster
+        /usr/local/bin/openshift-install --dir=$(params.CLUSTER_NAME) --log-level debug destroy cluster
     - name: remove-psi-resources
       workingDir: $(workspaces.install-dir.path)
       image: docker.io/praveen4g0/openstack-aws-cli:v0.0.5
@@ -49,9 +49,9 @@ spec:
           exit 1
         fi
 
-        if [ -f cluster/$CLUSTER_NAME/.openshift_install_state.json ]; then
+        if [ -f $CLUSTER_NAME/.openshift_install_state.json ]; then
           # installation got quite far
-          DOMAIN=$(jq -r '."*installconfig.InstallConfig".config.baseDomain' cluster/$CLUSTER_NAME/.openshift_install_state.json)
+          DOMAIN=$(jq -r '."*installconfig.InstallConfig".config.baseDomain' $CLUSTER_NAME/.openshift_install_state.json)
         else
           # installation probably did not start
           DOMAIN=$(params.BASE_DOMAIN)
@@ -59,8 +59,8 @@ spec:
 
         echo "Cluster name: $CLUSTER_NAME"
 
-        if [ ! -d "cluster/$CLUSTER_NAME" ]; then
-          echo "Directory \"cluster/$CLUSTER_NAME\" does not exist."
+        if [ ! -d "$CLUSTER_NAME" ]; then
+          echo "Directory \"$CLUSTER_NAME\" does not exist."
           exit 3
         fi
 
@@ -99,5 +99,5 @@ spec:
         echo "Releasing the floating IPs"
         openstack floating ip delete $FIP1 $FIP2
 
-        echo "Removing directory \"cluster/$CLUSTER_NAME\""
-        rm -rf cluster/$CLUSTER_NAME
+        echo "Removing directory \"$CLUSTER_NAME\""
+        rm -rf $CLUSTER_NAME

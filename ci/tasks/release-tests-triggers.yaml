@@ -5,7 +5,7 @@ metadata:
 spec:
   workspaces:
     - name: install-dir
-      mountPath: "/tekton/home/"
+      mountPath: "/install-dir"
       readOnly: true
   params:
   - name: OPERATOR-ENV
@@ -15,7 +15,7 @@ spec:
   - name: IMAGE
     type: string
     description: release-tests image
-    default: praveen4g0/release-tests:v0.0.7
+    default: praveen4g0/release-tests:v0.0.8
   - name: CLUSTER_NAME
     type: string
     description: Cluster name
@@ -44,7 +44,7 @@ spec:
       script: |
         #!/usr/bin/env bash
         set -e -u -o pipefail
-        export KUBECONFIG=$(workspaces.install-dir.path)/cluster/$(params.CLUSTER_NAME)/auth/kubeconfig
+        export KUBECONFIG=$(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/kubeconfig
         export GOPATH=/go
 
         clean() {  echo -n " Uploading test results... "; curr_ts=`date +"%Y-%m-%d-%H-%M-%S"`; tar -czvf reports.tar.gz reports; upload reports.tar.gz  CI/$(params.CLUSTER_NAME)/triggers-report/${curr_ts}/reports.tar.gz; upload logs/gauge.log CI/$(params.CLUSTER_NAME)/triggers-report/${curr_ts}/result.log; }
@@ -73,7 +73,7 @@ spec:
            -n ${UPLOADER_PASSWORD} ]] || exit 0
 
         #Gauge run command & OPERATOR_ENV sets on which environment you run release tests
-        OPERATOR_ENV=$(params.OPERATOR-ENV) gauge run --env "test" --log-level=debug --verbose   specs/triggers/
+        OPERATOR_ENV=$(params.OPERATOR-ENV) gauge run --env "default, test" --log-level=debug --verbose   specs/triggers/
       volumeMounts:
       - name: source
         mountPath: /go/src/github.com/openshift-pipelines/

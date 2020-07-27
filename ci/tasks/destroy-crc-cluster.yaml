@@ -19,12 +19,8 @@ spec:
         #!/usr/bin/env bash
         set -e -u -o pipefail
 
-        ls -al /tekton/home
-
         export KUBECONFIG=/tekton/home/.kube/config
 
-        oc whoami
-        oc cluster-info
         oc delete crc $(params.CLUSTER_NAME) -n crc
 
-        rm -rf "cluster/$(params.CLUSTER_NAME)"
+        rm -rf "$(params.CLUSTER_NAME)"

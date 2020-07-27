@@ -19,7 +19,7 @@ spec:
       script: |
           #!/usr/bin/env bash
           set -e -u -o pipefail
-          export KUBECONFIG=cluster/$(params.CLUSTER_NAME)/auth/kubeconfig
+          export KUBECONFIG=$(params.CLUSTER_NAME)/auth/kubeconfig
 
           echo -n "Subscribing to openshift pipelines operator...."
           oc apply -f $(workspaces.configmap.path)/subscription.yaml
