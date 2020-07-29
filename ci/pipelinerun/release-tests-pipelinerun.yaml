@@ -30,10 +30,10 @@ spec:
       claimName: plumbing-git
   - name: aws-secrets
     secret:
-      secretName: aws-credentials
+      secretName: aws
   - name: psi-secrets
     secret:
-      secretName: psi-cloud-creds
+      secretName: psi
   - name: configmap
     configMap:
        name: subscription-store

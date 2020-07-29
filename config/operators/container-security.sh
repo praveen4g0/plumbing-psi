@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "Installing Container Security operator"
+
 cat <<EOF | oc apply -f -
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
