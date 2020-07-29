@@ -44,11 +44,6 @@ spec:
         export AWS_PROFILE=${AWS_PROFILE:-"aws-pipelines"}
         CLUSTER_NAME=$(params.CLUSTER_NAME)
 
-        if [ -z $CLUSTER_NAME ]; then
-          echo -e "Specify desired cluster name as a parameter of this script \n"
-          exit 1
-        fi
-
         if [ -f $CLUSTER_NAME/.openshift_install_state.json ]; then
           # installation got quite far
           DOMAIN=$(jq -r '."*installconfig.InstallConfig".config.baseDomain' $CLUSTER_NAME/.openshift_install_state.json)
@@ -73,10 +68,10 @@ spec:
           exit 5
         fi
 
-        echo "Deleting DNS records in Route53"
         FIP1=$(dig +short api.$CLUSTER_NAME.$DOMAIN)
         FIP2=$(dig +short x.apps.$CLUSTER_NAME.$DOMAIN)
 
+        echo "Deleting DNS records for cluster API in Route53"
         RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Delete A record for cluster API", "Changes": [ { "Action": "DELETE", "ResourceRecordSet": { "Name": "api.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP1'" } ] } } ] }' --output json)
 
         if [ $? != 0 ]; then
@@ -87,6 +82,7 @@ spec:
         echo "Waiting for DNS change to propagate"
         aws route53 wait resource-record-sets-changed --id $(echo $RESPONSE | jq -r '.ChangeInfo.Id')
 
+        echo "Deleting DNS records for cluster ingress in Route53"
         RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Delete A record for cluster ingress", "Changes": [ { "Action": "DELETE", "ResourceRecordSet": { "Name": "*.apps.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP2'" } ] } } ] }' --output json)
 
         if [ $? != 0 ]; then
