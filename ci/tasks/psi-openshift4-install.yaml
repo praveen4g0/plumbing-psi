@@ -44,12 +44,15 @@ spec:
         export DOMAIN=${DOMAIN:-$(params.BASE_DOMAIN)}
         export NETWORK=${NETWORK:-"provider_net_cci_9"}
 
+        [[ -d "$CLUSTER_NAME" ]] && \
+        echo "Error: OCP cluster already exists" && exit 1
+        
+        # Create directory if not-exists
+        mkdir -p "$CLUSTER_NAME"
 
         # Create install-config.yaml
-        [[ -f install-config.yaml ]] && \
-        echo 'using existing install-config.yaml' && \
-        cat install-config.yaml && exit 0
-        cat << EOF > install-config.yaml
+        echo "Create install-config yaml with provided config"
+        cat << EOF > "$CLUSTER_NAME/install-config.yaml"
         apiVersion: v1
         baseDomain: $(params.BASE_DOMAIN)
         compute:
@@ -87,10 +90,6 @@ spec:
         pullSecret: '$PULL_SECRET'
         sshKey: '$PUBLIC_SSH_KEY'
         EOF
-        [[ -f install-config.yaml ]]
-
-        mkdir -p "$CLUSTER_NAME"
-        cp install-config.yaml "$CLUSTER_NAME/install-config.yaml"
 
         echo "Allocating a floating IP for cluster's API"
         FIP=$(openstack floating ip create --description "$CLUSTER_NAME-api" -f value -c floating_ip_address $NETWORK)
@@ -206,3 +205,5 @@ spec:
           sleep 5
          (( i++ ))
         done
+        
+        echo "Login into PSI cluster using this command: 'oc login -u kubeadmin -p $(cat $CLUSTER_NAME/auth/kubeadmin-password) --insecure-skip-tls-verify=true'"

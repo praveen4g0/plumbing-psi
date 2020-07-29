@@ -1,11 +1,10 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  generateName: openshift-pipelines-e2e-tests-
+  generateName: provision-psi-cluster-
 spec:
   pipelineRef:
-    name: release-tests
-  timeout: 2h
+    name: provision-psi-cluster
   params:
   - name: OPENSHIFT_INSTALLER_IMAGE
     value: docker.io/praveen4g0/release-tests-bootstrap-image:v0.0.3
@@ -15,12 +14,6 @@ spec:
     value: pipelines-ci
   - name: REPLICAS
     value: "3"
-  - name: OPERATOR-ENV
-    value: prod
-  - name: RELEASE-TESTS-IMAGE
-    value: docker.io/praveen4g0/release-tests:v0.0.8
-  - name: UPLOADER-HOST
-    value: http://uploader-uploader.apps.cicd.tekton.codereadyqe.com
   workspaces:
   - name: install-dir
     persistentvolumeclaim:
@@ -34,9 +27,3 @@ spec:
   - name: psi-secrets
     secret:
       secretName: psi
-  - name: configmap
-    configMap:
-       name: subscription-store
-       items:
-       - key: subscription
-         path: subscription.yaml

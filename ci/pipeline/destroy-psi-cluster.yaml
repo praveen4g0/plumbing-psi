@@ -1,0 +1,32 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: destroy-psi-cluster
+spec:
+  params:
+  - name: OPENSHIFT_INSTALLER_IMAGE
+    type: string
+    description: openshift installer image
+  - name: CLUSTER_NAME
+    type: string
+    description: Cluster Name
+  workspaces:
+  - name: install-dir
+  - name: aws-secrets
+  - name: psi-secrets
+  tasks:
+  - name: destroy-cluster-psi
+    taskRef:
+        name: destroy-cluster-psi
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+      - name: OPENSHIFT_INSTALLER_IMAGE
+        value: $(params.OPENSHIFT_INSTALLER_IMAGE)
+    workspaces:
+      - name: install-dir
+        workspace: install-dir
+      - name: aws-secrets
+        workspace: aws-secrets
+      - name: psi-secrets
+        workspace: psi-secrets

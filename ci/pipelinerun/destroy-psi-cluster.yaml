@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: destroy-psi-cluster-
+spec:
+  pipelineRef:
+    name: destroy-psi-cluster
+  params:
+  - name: OPENSHIFT_INSTALLER_IMAGE
+    value: docker.io/praveen4g0/release-tests-bootstrap-image:v0.0.3
+  - name: CLUSTER_NAME
+    value: pipelines-ci
+  workspaces:
+  - name: install-dir
+    persistentvolumeclaim:
+      claimName: install-dir
+  - name: aws-secrets
+    secret:
+      secretName: aws
+  - name: psi-secrets
+    secret:
+      secretName: psi
