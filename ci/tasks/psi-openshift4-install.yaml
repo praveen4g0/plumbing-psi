@@ -26,7 +26,7 @@ spec:
     - name: OPENSHIFT_INSTALLER_IMAGE
       type: string
       description: openshift installer base image for upi installation
-      default: praveen4g0/release-tests-bootstrap-image:v0.0.1
+      default: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.0
     - name: OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE
       type: string
       description: openshift installer os image
@@ -198,6 +198,9 @@ spec:
         echo "Logging in to cluster $CLUSTER_NAME as kubeadmin"
         export KUBECONFIG=$CLUSTER_NAME/auth/kubeconfig
 
+        APISERVER=$(oc config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+        echo "Login into PSI cluster using this command: 'oc login -u kubeadmin -p $(cat $CLUSTER_NAME/auth/kubeadmin-password) $APISERVER --insecure-skip-tls-verify=true'"
+
         # Sometime the url can let us down, so let's add a counter
         i=1
         while [[ $i -le 10 ]];do
@@ -205,5 +208,3 @@ spec:
           sleep 5
          (( i++ ))
         done
-        
-        echo "Login into PSI cluster using this command: 'oc login -u kubeadmin -p $(cat $CLUSTER_NAME/auth/kubeadmin-password) --insecure-skip-tls-verify=true'"
