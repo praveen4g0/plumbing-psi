@@ -5,7 +5,7 @@ metadata:
 spec:
   workspaces:
     - name: install-dir
-      mountPath: "/tekton/home/"
+      mountPath: "/install-dir"
       readOnly: true
     - name: plumbing-git
       mountPath: "/plumbing"

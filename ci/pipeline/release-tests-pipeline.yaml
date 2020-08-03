@@ -25,6 +25,9 @@ spec:
   - name: UPLOADER-HOST
     type: string
     description: To upload reports & logs to uploader hosts
+  - name: SUBDIR
+    description: subdirectory where plumbing git repository should be cloned
+    default: e2e-ocp
   workspaces:
   - name: install-dir
   - name: aws-secrets
@@ -65,7 +68,7 @@ spec:
       - name: sslVerify
         value: "false"
       - name: subdirectory
-        value: e2e-ocp
+        value: $(params.SUBDIR)
     workspaces:
     - name: output
       workspace: plumbing-git    
@@ -77,11 +80,15 @@ spec:
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
+      - name: SUBDIR
+        value: $(params.SUBDIR)
     workspaces:
     - name: install-dir
       workspace: install-dir
     - name: configmap
       workspace: configmap
+    - name: plumbing-git
+      workspace: plumbing-git
   - name: setup-testing-accounts
     taskRef:
       name: setup-testing-accounts
@@ -91,12 +98,12 @@ spec:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
       - name: SUBDIR
-        value: e2e-ocp
+        value: $(params.SUBDIR)
     workspaces:
     - name: install-dir
       workspace: install-dir
     - name: plumbing-git
-      workspace: plumbing-git    
+      workspace: plumbing-git
   - name: release-tests-pipelines
     taskRef:
       name: release-tests-pipelines

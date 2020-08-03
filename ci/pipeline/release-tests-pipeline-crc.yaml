@@ -13,7 +13,10 @@ spec:
   - name: UPLOADER-HOST
     description: To upload reports & logs to uploader hosts
   - name: CRC_BUNDLE
-    description: The system bundle used for deployment of the OpenShift cluster   
+    description: The system bundle used for deployment of the OpenShift cluster
+  - name: SUBDIR
+    description: subdirectory where plumbing git repository should be cloned
+    default: e2e-crc
   workspaces:
   - name: install-dir
   - name: cnv-cluster-secrets
@@ -47,7 +50,7 @@ spec:
       - name: sslVerify
         value: "false"
       - name: subdirectory
-        value: e2e-crc
+        value: $(params.SUBDIR)
     workspaces:
     - name: output
       workspace: plumbing-git    
@@ -60,7 +63,7 @@ spec:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
       - name: SUBDIR
-        value: e2e-crc
+        value: $(params.SUBDIR)
     workspaces:
     - name: install-dir
       workspace: install-dir
@@ -74,11 +77,15 @@ spec:
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
+      - name: SUBDIR
+        value: $(params.SUBDIR)
     workspaces:
     - name: install-dir
       workspace: install-dir
     - name: configmap
       workspace: configmap
+    - name: plumbing-git
+      workspace: plumbing-git
   - name: release-tests-pipelines
     taskRef:
       name: release-tests-pipelines
