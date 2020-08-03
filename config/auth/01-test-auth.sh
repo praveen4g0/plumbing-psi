@@ -2,8 +2,21 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 
-echo "Creating secret htpass-secret ---"
-oc create secret generic htpass-secret --from-file=htpasswd=$DIR/users.htpasswd -n openshift-config
+KUBEADMIN_PASS=$(oc get secret -n openshift-config htpass-secret -o jsonpath={.data.htpasswd} | base64 -d | grep kubeadmin)
+if [ $? == 0 ]; then
+  echo "Kubeadmin password found in secret called 'htpass-secret'. This is expected on CRC clusters."
+  HTPASSWD_FILE=$(mktemp /tmp/htpasswd.XXX)
+  echo $KUBEADMIN_PASS >> "$HTPASSWD_FILE"
+  cat $DIR/users.htpasswd >> "$HTPASSWD_FILE"
+
+  echo "Updating secret htpass-secret"
+  PATCH="{\"data\":{\"htpasswd\":\"$(cat $HTPASSWD_FILE | base64 -w 0)\"}}"
+  oc patch secret htpass-secret -n openshift-config -p=$PATCH -v=1
+  rm "$HTPASSWD_FILE"
+else
+  echo "Creating secret htpass-secret"
+  oc create secret generic htpass-secret --from-file=htpasswd="$DIR/users.htpasswd" -n openshift-config
+fi
 
 echo "Creating a htpasswd identity provider"
 oc apply -f $DIR/test-oauth.yaml

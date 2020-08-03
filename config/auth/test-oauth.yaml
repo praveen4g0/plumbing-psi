@@ -7,7 +7,7 @@ spec:
   - name: htpasswd 
     challenge: true 
     login: true 
-    mappingMethod: claim 
+    mappingMethod: add
     type: HTPasswd
     htpasswd:
       fileData:
