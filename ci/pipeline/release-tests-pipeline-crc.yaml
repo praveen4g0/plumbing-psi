@@ -76,7 +76,7 @@ spec:
     taskRef:
       name: subscribe-to-pipelines-operator
     runAfter:
-    - provision-crc-cluster
+    - clone-plumbing-git
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
