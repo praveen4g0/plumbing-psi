@@ -35,6 +35,6 @@ sed -e "s/\$PULL_SECRET/$ENCODED_PULL_SECRET/" \
     "$DIR/../../ci/secrets/openshift-install.yaml" | oc apply -f -
 
 echo -e "\nConfiguring PSI cloud credentials"
-sed -e "s/\$PSI_CLOUD_USERNAME/$PSI_CLOUD_USERNAME/" \
-    -e "s/\$PSI_CLOUD_PASSWORD/$PSI_CLOUD_PASSWORD/" \
+sed -e "s/\$PSI_CLOUD_USERNAME/$PSI_CLOUD_USERNAME/g" \
+    -e "s/\$PSI_CLOUD_PASSWORD/$PSI_CLOUD_PASSWORD/g" \
     "$DIR/../../ci/secrets/psi.yaml" | oc apply -f -

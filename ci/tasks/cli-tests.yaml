@@ -1,0 +1,99 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: run-cli-tests
+spec:
+  description: This task is to run upstream/downstream cli tests on multiple operating systems
+  workspaces:
+    - name: install-dir
+  resources:
+    inputs:
+      - name: plumbing-repo
+        type: git
+  params:
+    - name: OPERATING_SYSTEM
+      description: operating-system on which test needs to be run (ubuntu16, rhel8, windows10, fedora31)
+    - name: TEST_TYPE
+      description: type of test you want to run (upstream/downstream)
+    - name: TKN_VERSION
+      description: version of tkn against test cases need to be run
+    - name: CLUSTER_NAME
+      description: Cluster name
+  steps:
+    - name: run-cli-test-on-specified-os
+      image: quay.io/veeresharadhya/test-tkn-with-openstack:v1.1
+      workingDir: /workspace/plumbing-repo/ansible
+      env:
+        - name: OS_AUTH_URL
+          valueFrom:
+            secretKeyRef:
+              name: psi
+              key: os-auth-url
+        - name: OS_PROJECT_ID
+          valueFrom:
+            secretKeyRef:
+              name: psi
+              key: os-project-id
+        - name: OS_PROJECT_NAME
+          valueFrom:
+            secretKeyRef:
+              name: psi
+              key: os-project-name
+        - name: OS_USER_DOMAIN_NAME
+          valueFrom:
+            secretKeyRef:
+              name: psi
+              key: os-user-domain-name
+        - name: OS_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: psi
+              key: os-username
+        - name: OS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: psi
+              key: os-password
+        - name: OS_REGION_NAME
+          valueFrom:
+            secretKeyRef:
+              name: psi
+              key: os-region-name
+        - name: OS_INTERFACE
+          valueFrom:
+            secretKeyRef:
+              name: psi
+              key: os-interface
+        - name: OS_IDENTITY_API_VERSION
+          valueFrom:
+            secretKeyRef:
+              name: psi
+              key: os-identitiy-api-version
+      securityContext:
+        runAsUser: 0
+        privileged: true
+      script: |
+        #!/bin/bash
+
+        # Create Keypair
+        keypair_name=test_keypair_$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n 1)
+        openstack keypair create $keypair_name > id_rsa
+        chmod 400 id_rsa
+
+        export OCP_USERNAME=kubeadmin
+        export OCP_PASSWORD=`cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/kubeadmin-password`
+        export OCP_SERVER_ADDRESS=`cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/api-url`
+
+        # Run cli tests on
+        python3 run-playbooks.py --operating_system $(params.OPERATING_SYSTEM) --test_type $(params.TEST_TYPE) --keypair_name $keypair_name --private_key_location $PWD/id_rsa --tkn_version $(params.TKN_VERSION)
+
+        if [ $? -eq 0 ]
+        then
+          # Delete Keypair
+          openstack keypair delete $keypair_name
+        else
+          # Delete Keypair
+          openstack keypair delete $keypair_name
+          echo "Task execution failed"
+          exit 1
+        fi

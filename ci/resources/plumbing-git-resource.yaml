@@ -1,0 +1,13 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: plumbing-repo
+spec:
+  type: git
+  params:
+    - name: url
+      value: https://gitlab.cee.redhat.com/tekton/plumbing.git
+    - name: revision
+      value: master
+    - name: sslVerify
+      value: "false"

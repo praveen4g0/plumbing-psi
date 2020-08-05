@@ -3,6 +3,9 @@ kind: Pipeline
 metadata:
   name: release-tests-crc
 spec:
+  resources:
+    - name: plumbing-repo
+      type: git
   params:
   - name: CLUSTER_NAME
     description: Cluster name
@@ -124,12 +127,104 @@ spec:
     workspaces:
       - name: install-dir
         workspace: install-dir
+  - name: upstream-cli-tests-ubuntu-16
+    taskRef:
+      name: run-cli-tests
+    resources:
+      inputs:
+        - name: plumbing-repo
+          resource: plumbing-repo
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+      - name: OPERATING_SYSTEM
+        value: ubuntu16
+      - name: TEST_TYPE
+        value: upstream
+      - name: TKN_VERSION
+        value: 0.11.0
+    runAfter:
+      - pipelines-operator-subscription
+      - setup-testing-accounts
+    workspaces:
+      - name: install-dir
+        workspace: install-dir
+  - name: upstream-cli-tests-rhel-8
+    taskRef:
+      name: run-cli-tests
+    resources:
+      inputs:
+        - name: plumbing-repo
+          resource: plumbing-repo
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+      - name: OPERATING_SYSTEM
+        value: rhel8
+      - name: TEST_TYPE
+        value: upstream
+      - name: TKN_VERSION
+        value: 0.11.0
+    runAfter:
+      - pipelines-operator-subscription
+      - setup-testing-accounts
+    workspaces:
+      - name: install-dir
+        workspace: install-dir
+  - name: upstream-cli-tests-fedora-31
+    taskRef:
+      name: run-cli-tests
+    resources:
+      inputs:
+        - name: plumbing-repo
+          resource: plumbing-repo
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+      - name: OPERATING_SYSTEM
+        value: fedora31
+      - name: TEST_TYPE
+        value: upstream
+      - name: TKN_VERSION
+        value: 0.11.0
+    runAfter:
+      - pipelines-operator-subscription
+      - setup-testing-accounts
+    workspaces:
+      - name: install-dir
+        workspace: install-dir
+  - name: upstream-cli-tests-windows-10
+    taskRef:
+      name: run-cli-tests
+    resources:
+      inputs:
+        - name: plumbing-repo
+          resource: plumbing-repo
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+      - name: OPERATING_SYSTEM
+        value: windows10
+      - name: TEST_TYPE
+        value: upstream
+      - name: TKN_VERSION
+        value: 0.11.0
+    runAfter:
+      - pipelines-operator-subscription
+      - setup-testing-accounts
+    workspaces:
+      - name: install-dir
+        workspace: install-dir
   - name: uninstall-pipelines-operator
     taskRef:
       name: uninstall-pipelines-operator
     runAfter:
     - release-tests-pipelines
     - release-tests-triggers
+    - upstream-cli-tests-fedora-31
+    - upstream-cli-tests-ubuntu-16
+    - upstream-cli-tests-rhel-8
+    - upstream-cli-tests-windows-10
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)

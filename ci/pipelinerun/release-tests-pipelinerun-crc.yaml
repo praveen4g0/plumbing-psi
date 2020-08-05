@@ -6,6 +6,10 @@ spec:
   pipelineRef:
     name: release-tests-crc
   timeout: 2h
+  resources:
+    - name: plumbing-repo
+      resourceRef:
+        name: plumbing-repo
   params:
   - name: CLUSTER_NAME
     value: e2ecrc

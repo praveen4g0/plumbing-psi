@@ -82,4 +82,6 @@ spec:
         API_URL=$(oc get crc $(params.CLUSTER_NAME) -n crc -o jsonpath={.status.apiURL})
         echo "Login into CRC cluster using this command: 'oc login -u kubeadmin -p $(cat $AUTH_PATH/kubeadmin-password) $API_URL'"
 
+        echo $API_URL > "$AUTH_PATH/api-url"
+
         oc get clusterversion --kubeconfig "$AUTH_PATH/kubeconfig"

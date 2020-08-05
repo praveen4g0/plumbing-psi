@@ -60,6 +60,8 @@ test_type = args.test_type
 save_environment = args.save_environment
 keypair_name = args.keypair_name
 private_key_location = args.private_key_location
+return_status = True
+return_message = ''
 
 # Set VM name and keypair name as environment variables
 rand_string = ''.join(random.choices(string.ascii_lowercase +
@@ -75,10 +77,6 @@ with open('flavor_image_config.json') as config_file:
     os.environ['KEYPAIR_NAME'] = keypair_name
     os.environ['NETWORK'] = args.network
 
-# Delete id_rsa if present
-if os.path.exists('id_rsa'):
-    os.remove('id_rsa')
-
 # Create VM
 print(
     '============================== Creating {} VM with name {} ====================================='.format(os_type,
@@ -86,103 +84,117 @@ print(
     flush=True)
 output = subprocess.run('ansible-playbook create-vm.yml -vvvv'.split(), stdout=subprocess.PIPE, text=True)
 
-if output.returncode != 0:
-    print('============================== Deleting keypair {} ====================================='.format(
-        keypair_name), flush=True)
-    subprocess.run('openstack keypair delete {}'.format(keypair_name).split(), stdout=subprocess.PIPE, text=True)
-    raise Exception('Creation of VM failed with error {}'.format(output.stdout))
-#
-print('============================== sleeping for 2 minute =====================================')
-time.sleep(120)
-
-# Get VM details
-output = subprocess.run('openstack server show {} -f json'.format(vm_name).split(), stdout=subprocess.PIPE,
-                        text=True)
-vm_info = json.loads(output.stdout)
-vm_id = vm_info['id']
-volume_attached = vm_info['volumes_attached']
-match = re.search(r'\d+\.\d+\.\d+\.\d+', vm_info['addresses'])
-vm_ip = match.group(0)
-
-# Build inventory file
-os_username = {'ubuntu16': 'ubuntu', 'rhel8': 'cloud-user', 'windows10': 'Admin', 'fedora31': 'fedora'}
-
-if os_type == 'windows10':
-    output = subprocess.run('nova get-password {} {}'.format(vm_id, private_key_location).split(),
-                            stdout=subprocess.PIPE, text=True)
-    win_password = output.stdout
-
-    inventory_content = '''
-[test-host]
-{}
-
-[test-host:vars]
-ansible_user={}
-ansible_password={}
-ansible_connection=winrm
-ansible_winrm_server_cert_validation=ignore
-'''.format(vm_ip, os_username[os_type], win_password)
-else:
-    inventory_content = '''
-[test-host]
-{}
-
-[test-host:vars]
-ansible_user={}
-ansible_ssh_common_args='-o StrictHostKeyChecking=no'
-'''.format(vm_ip, os_username[os_type])
-with open('hosts', 'w') as f:
-    f.write(inventory_content)
-
-playbook_name = 'linux' if os_type in ['rhel8', 'ubuntu16', 'fedora31'] else 'windows'
-
-# Install tkn on remote machine
-if test_type == 'downstream':
-    print(
-        '============================== Install tkn on VM {} ====================================='.format(vm_name),
-        flush=True)
-    output = subprocess.run(
-        'ansible-playbook install-tkn-{}.yml -v -i hosts --private-key id_rsa'.format(playbook_name).split(),
-        stdout=subprocess.PIPE, text=True)
-    print('installation tkn was successful', flush=True)
-
 if output.returncode == 0:
-    print('============================== running {} cli tests on {} ====================================='.format(
-        test_type, vm_name), flush=True)
-    output = subprocess.run(
-        'ansible-playbook run-cli-{}-tests-{}.yml -i hosts'.format(test_type, playbook_name).split(),
-        stdout=subprocess.PIPE, text=True)
-    match = re.search(r'"output.stdout_lines": \[(.*)\]', output.stdout, re.DOTALL)
-    if match:
-        output = match.group(1)
-        output = output.split('\n')
-        for i in output:
-            i = i.strip()
-            i = i.strip(',')
-            i = i.strip('"')
-            if test_type == 'downstream':
-                print(codecs.getdecoder("unicode_escape")(i)[0])
-            else:
-                print(i)
+    print('============================== sleeping for 2 minute =====================================')
+    time.sleep(120)
+
+    # Get VM details
+    output = subprocess.run('openstack server show {} -f json'.format(vm_name).split(), stdout=subprocess.PIPE,
+                            text=True)
+    vm_info = json.loads(output.stdout)
+    vm_id = vm_info['id']
+    volume_attached = vm_info['volumes_attached']
+    match = re.search(r'\d+\.\d+\.\d+\.\d+', vm_info['addresses'])
+    vm_ip = match.group(0)
+
+    # Build inventory file
+    os_username = {'ubuntu16': 'ubuntu', 'rhel8': 'cloud-user', 'windows10': 'Admin', 'fedora31': 'fedora'}
+
+    if os_type == 'windows10':
+        output = subprocess.run('nova get-password {} {}'.format(vm_id, private_key_location).split(),
+                                stdout=subprocess.PIPE, text=True)
+        win_password = output.stdout
+
+        inventory_content = '''
+    [test-host]
+    {}
+
+    [test-host:vars]
+    ansible_user={}
+    ansible_password={}
+    ansible_connection=winrm
+    ansible_winrm_server_cert_validation=ignore
+    '''.format(vm_ip, os_username[os_type], win_password)
     else:
-        print(output.stdout)
-else:
-    print(output.stdout)
+        inventory_content = '''
+    [test-host]
+    {}
 
-if save_environment:
-    print('============================== VM {} saved for future use ====================================='.format(
-        vm_name), flush=True)
-else:
-    # Delete created VM
-    print('============================== Deleting VM {} ====================================='.format(vm_name))
-    subprocess.run('nova delete {}'.format(vm_id).split(), stdout=subprocess.PIPE, text=True)
+    [test-host:vars]
+    ansible_user={}
+    ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+    '''.format(vm_ip, os_username[os_type])
+    with open('hosts', 'w') as f:
+        f.write(inventory_content)
 
-    # Delete volume if present
-    if volume_attached:
-        time.sleep(90)
-        print('============================== Deleting attached volume =====================================')
-        volume_id = volume_attached.strip('id=')
-        volume_id = volume_id.strip("'")
-        output = subprocess.run('openstack volume delete {}'.format(volume_id).split(), stdout=subprocess.PIPE,
-                                text=True)
-        print(output.stdout)
+    playbook_name = 'linux' if os_type in ['rhel8', 'ubuntu16', 'fedora31'] else 'windows'
+
+    # Install tkn on remote machine
+    if test_type == 'downstream':
+        print(
+            '============================== Install tkn on VM {} ====================================='.format(vm_name),
+            flush=True)
+        output = subprocess.run(
+            'ansible-playbook install-tkn-{}.yml -v -i hosts --private-key {}'.format(playbook_name,
+                                                                                      private_key_location).split(),
+            stdout=subprocess.PIPE, text=True)
+        if output.returncode != 0:
+            return_status = False
+            return_message = output.stdout
+
+    if output.returncode == 0:
+        print('============================== running {} cli tests on {} ====================================='.format(
+            test_type, vm_name), flush=True)
+        output = subprocess.run(
+            'ansible-playbook run-cli-{}-tests-{}.yml -i hosts --private-key {}'.format(test_type, playbook_name,
+                                                                                        private_key_location).split(),
+            stdout=subprocess.PIPE, text=True)
+        if output.returncode == 0:
+            if 'FAILED! =>' in output.stdout or '"msg": "non-zero return code"' in output.stdout:
+                return_status = False
+                return_message = 'Check the test execution logs'
+            match = re.search(r'"output.stdout_lines": \[(.*)\]', output.stdout, re.DOTALL)
+            if match:
+                output = match.group(1)
+                output = output.split('\n')
+                for i in output:
+                    i = i.strip()
+                    i = i.strip(',')
+                    i = i.strip('"')
+                    if test_type == 'downstream':
+                        print(codecs.getdecoder("unicode_escape")(i)[0])
+                    else:
+                        print(i)
+            else:
+                return_status = False
+                return_message = output.stdout
+        else:
+            return_status = False
+            return_message = output.stdout
+    else:
+        return_status = False
+        return_message = output.stdout
+
+    if save_environment:
+        print('============================== VM {} saved for future use ====================================='.format(
+            vm_name), flush=True)
+    else:
+        # Delete created VM
+        print('============================== Deleting VM {} ====================================='.format(vm_name))
+        subprocess.run('nova delete {}'.format(vm_id).split(), stdout=subprocess.PIPE, text=True)
+
+        # Delete volume if present
+        if volume_attached:
+            time.sleep(90)
+            print('============================== Deleting attached volume =====================================')
+            volume_id = volume_attached.strip('id=')
+            volume_id = volume_id.strip("'")
+            output = subprocess.run('openstack volume delete {}'.format(volume_id).split(), stdout=subprocess.PIPE,
+                                    text=True)
+            print(output.stdout)
+else:
+    return_status = False
+    return_message = output.stdout
+
+if return_status is False:
+    raise Exception('Script failed with error:\n{}'.format(return_message))
