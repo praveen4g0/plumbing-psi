@@ -201,6 +201,9 @@ spec:
         APISERVER=$(oc config view --minify -o jsonpath='{.clusters[0].cluster.server}')
         echo "Login into PSI cluster using this command: 'oc login -u kubeadmin -p $(cat $CLUSTER_NAME/auth/kubeadmin-password) $APISERVER --insecure-skip-tls-verify=true'"
 
+        # Store api-server address in workspace for future use
+        echo $APISERVER > "$CLUSTER_NAME/auth/api-url"
+
         # Sometime the url can let us down, so let's add a counter
         i=1
         while [[ $i -le 10 ]];do

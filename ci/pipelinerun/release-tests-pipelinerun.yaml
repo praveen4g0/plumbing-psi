@@ -6,6 +6,10 @@ spec:
   pipelineRef:
     name: release-tests
   timeout: 2h
+  resources:
+    - name: plumbing-repo
+      resourceRef:
+        name: plumbing-repo
   params:
   - name: OPENSHIFT_INSTALLER_IMAGE
     value: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.0
