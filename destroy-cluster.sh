@@ -45,11 +45,13 @@ fi
 if [ -f "cluster/$CLUSTER_NAME/metadata.json" ]; then
   echo "Running \"openshift-install destroy cluster\""
   openshift-install --dir=cluster/$CLUSTER_NAME --log-level debug destroy cluster
-fi
 
-if [ $? != 0 ]; then
-  echo "Failed to destroy cluster, try to run the script again."
-  exit 4
+  if [ $? != 0 ]; then
+    echo "Failed to destroy cluster, try to run the script again."
+    exit 4
+  fi
+else
+  echo "File cluster/$CLUSTER_NAME/metadata.json not found. The cluster was probably destroyed previously."
 fi
 
 echo "Getting zone ID in Route53"
@@ -65,27 +67,43 @@ echo "Deleting DNS records in Route53"
 FIP1=$(dig +short api.$CLUSTER_NAME.$DOMAIN)
 FIP2=$(dig +short x.apps.$CLUSTER_NAME.$DOMAIN)
 
-RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Delete A record for cluster API", "Changes": [ { "Action": "DELETE", "ResourceRecordSet": { "Name": "api.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP1'" } ] } } ] }' --output json)
+if [ ! -z "$FIP1" ]; then
+  echo "Deleting DNS records for cluster API in Route53"
+  RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Delete A record for cluster API", "Changes": [ { "Action": "DELETE", "ResourceRecordSet": { "Name": "api.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP1'" } ] } } ] }' --output json)
 
-if [ $? != 0 ]; then
-  echo "Failed to delete A records for the cluster"
-  exit 6
-fi
+  if [ $? != 0 ]; then
+    echo "Failed to delete A records for the cluster API"
+    exit 6
+  fi
 
-echo "Waiting for DNS change to propagate"
-aws route53 wait resource-record-sets-changed --id $(echo $RESPONSE | jq -r '.ChangeInfo.Id')
-
-RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Delete A record for cluster ingress", "Changes": [ { "Action": "DELETE", "ResourceRecordSet": { "Name": "*.apps.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP2'" } ] } } ] }' --output json)
-
-if [ $? != 0 ]; then
-  echo "Failed to delete A records for the cluster, it's OK if previous installation failed."
-else
   echo "Waiting for DNS change to propagate"
   aws route53 wait resource-record-sets-changed --id $(echo $RESPONSE | jq -r '.ChangeInfo.Id')
+else
+  echo "DNS records for cluster API not found. Skipping."
 fi
 
-echo "Releasing the floating IPs"
-openstack floating ip delete $FIP1 $FIP2
+if [ ! -z "$FIP2" ]; then
+  echo "Deleting DNS records for cluster ingress in Route53"
+  RESPONSE=$(aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{ "Comment": "Delete A record for cluster ingress", "Changes": [ { "Action": "DELETE", "ResourceRecordSet": { "Name": "*.apps.'$CLUSTER_NAME'.'$DOMAIN'", "Type": "A", "TTL":  60, "ResourceRecords": [ { "Value": "'$FIP2'" } ] } } ] }' --output json)
+
+  if [ $? != 0 ]; then
+    echo "Failed to delete A records for the cluster ingress"
+    exit 7
+  fi
+
+  echo "Waiting for DNS change to propagate"
+  aws route53 wait resource-record-sets-changed --id $(echo $RESPONSE | jq -r '.ChangeInfo.Id')
+else
+  echo "DNS records for cluster ingress not found. Skipping."
+fi
+
+set -e
+if [ ! -z "$FIP1" ] || [ ! -z "$FIP2" ]; then
+  echo "Releasing the floating IPs"
+  openstack floating ip delete $FIP1 $FIP2
+else
+  echo "No known floating IPs used. Skipping."
+fi
 
 echo "Removing directory \"cluster/$CLUSTER_NAME\""
 rm -rf cluster/$CLUSTER_NAME
