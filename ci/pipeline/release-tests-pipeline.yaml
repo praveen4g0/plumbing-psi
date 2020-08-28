@@ -16,6 +16,9 @@ spec:
   - name: CLUSTER_NAME
     type: string
     description: Cluster Name
+  - name: CHANNEL
+    type: string
+    description: subscription channel
   - name: REPLICAS
     type: string
     description: How many replicas for the master and worker node
@@ -35,7 +38,6 @@ spec:
   - name: install-dir
   - name: aws-secrets
   - name: psi-secrets
-  - name: configmap
   - name: plumbing-git
   tasks:
   - name: provision-cluster-psi
@@ -83,13 +85,13 @@ spec:
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
+      - name: CHANNEL
+        value: $(params.CHANNEL)  
       - name: SUBDIR
         value: $(params.SUBDIR)
     workspaces:
     - name: install-dir
       workspace: install-dir
-    - name: configmap
-      workspace: configmap
     - name: plumbing-git
       workspace: plumbing-git
   - name: setup-testing-accounts
@@ -246,11 +248,15 @@ spec:
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
+      - name: CHANNEL
+        value: $(params.CHANNEL)  
+      - name: SUBDIR
+        value: $(params.SUBDIR)  
     workspaces:
     - name: install-dir
       workspace: install-dir
-    - name: configmap
-      workspace: configmap
+    - name: plumbing-git
+      workspace: plumbing-git  
   - name: destroy-cluster-psi
     taskRef:
         name: destroy-cluster-psi

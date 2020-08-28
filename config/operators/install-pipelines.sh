@@ -2,6 +2,8 @@
 
 echo "Installing OpenShift Pipelines operator"
 
+CHANNEL=${1:-ocp-4.5}
+
 cat <<EOF | oc apply -f -
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -9,7 +11,7 @@ metadata:
   name: openshift-pipelines-operator
   namespace: openshift-operators
 spec:
-  channel: ocp-4.4
+  channel: $CHANNEL
   name: openshift-pipelines-operator-rh
   source: redhat-operators
   sourceNamespace: openshift-marketplace

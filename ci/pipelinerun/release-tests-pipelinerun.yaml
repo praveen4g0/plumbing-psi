@@ -17,6 +17,8 @@ spec:
     value: rhcos-4.4
   - name: CLUSTER_NAME
     value: pipelines-ci
+  - name: CHANNEL
+    value: preview
   - name: REPLICAS
     value: "3"
   - name: OPERATOR-ENV
@@ -38,9 +40,3 @@ spec:
   - name: psi-secrets
     secret:
       secretName: psi
-  - name: configmap
-    configMap:
-       name: subscription-store
-       items:
-       - key: subscription
-         path: subscription.yaml
