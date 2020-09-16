@@ -20,12 +20,13 @@ if [ -z $CI ]; then
   # it's a long-running production cluster, the one running our CI/CD system
   oc new-project pipelines-ci
 
-  $DIR/config/auth/01-prod-auth.sh
   $DIR/config/prune-images.sh
-  $DIR/config/operators/cnv.sh
+  #$DIR/config/operators/cnv.sh
   $DIR/config/operators/container-security.sh
-  $DIR/config/operators/pipelines.sh
+  $DIR/config/operators/install-pipelines.sh
   $DIR/config/secrets/secrets.sh
+  # needs to be last one because we remove kubeadmin account in this script
+  $DIR/config/auth/01-prod-auth.sh
 else
   # it's a temporary testing cluster
   $DIR/config/auth/01-test-auth.sh

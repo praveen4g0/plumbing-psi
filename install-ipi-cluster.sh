@@ -53,7 +53,7 @@ sed -i "s/domainxxx/$DOMAIN/" cluster/$CLUSTER_NAME/install-config.yaml
 
 sed -i "s/networkxxx/$NETWORK/" cluster/$CLUSTER_NAME/install-config.yaml
 
-sed -i "s/computereplicasxxx/3/" cluster/$CLUSTER_NAME/install-config.yaml
+sed -i "s/computereplicasxxx/2/" cluster/$CLUSTER_NAME/install-config.yaml
 
 sed -i "s/pullsecretxxx/$(cat $PULL_SECRET_FILE)/" cluster/$CLUSTER_NAME/install-config.yaml
 

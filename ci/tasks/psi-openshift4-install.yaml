@@ -22,7 +22,7 @@ spec:
     - name: REPLICAS
       description: How many replicas for the master and worker node
       type: string
-      default: "3"
+      default: "2"
     - name: OPENSHIFT_INSTALLER_IMAGE
       type: string
       description: openshift installer base image for upi installation
@@ -30,7 +30,7 @@ spec:
     - name: OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE
       type: string
       description: openshift installer os image
-      default: rhcos-4.4
+      default: rhcos-4.5
   steps:
     - name: setup-psi-infra
       workingDir: $(workspaces.install-dir.path)
@@ -66,7 +66,7 @@ spec:
           hyperthreading: Enabled
           name: master
           platform: {}
-          replicas: $(params.REPLICAS)
+          replicas: 3
         metadata:
           creationTimestamp: null
           name: $(params.CLUSTER_NAME)

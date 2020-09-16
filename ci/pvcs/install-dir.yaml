@@ -7,4 +7,5 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 500Mi
+      # if a pre-installed RHCOS image is not used, it will be stored in this PVC
+      storage: 5Gi

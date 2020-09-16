@@ -14,13 +14,13 @@ spec:
   - name: OPENSHIFT_INSTALLER_IMAGE
     value: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.0
   - name: OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE
-    value: rhcos-4.4
+    value: rhcos-4.5
   - name: CLUSTER_NAME
     value: pipelines-ci
   - name: CHANNEL
     value: preview
   - name: REPLICAS
-    value: "3"
+    value: "2"
   - name: OPERATOR-ENV
     value: prod
   - name: RELEASE-TESTS-IMAGE

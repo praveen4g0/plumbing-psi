@@ -2,7 +2,7 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 
-KUBEADMIN_PASS=$(oc get secret -n openshift-config htpass-secret -o jsonpath={.data.htpasswd} | base64 -d | grep kubeadmin)
+KUBEADMIN_PASS=$(oc get secret -n openshift-config htpass-secret -o jsonpath={.data.htpasswd} 2> /dev/null | base64 -d | grep kubeadmin)
 if [ $? == 0 ]; then
   echo "Kubeadmin password found in secret called 'htpass-secret'. This is expected on CRC clusters."
   HTPASSWD_FILE=$(mktemp /tmp/htpasswd.XXX)

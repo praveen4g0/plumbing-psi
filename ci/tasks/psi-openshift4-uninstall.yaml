@@ -32,6 +32,9 @@ spec:
         set -e -u -o pipefail
         export OS_CLOUD=${OS_CLOUD:-"psi-pipelines"}
 
+        echo "=== content of disk:"
+        ls 
+
         if [ ! -d "$(params.CLUSTER_NAME)" ]; then
           echo "Directory \"$(params.CLUSTER_NAME)\" does not exist."
           exit 3

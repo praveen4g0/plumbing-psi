@@ -32,10 +32,10 @@ The script has two required parameters - path to your pull secrets file and clus
 
 > NOTE If you try to re-use the name of the cluster, first make sure that the cluster doesn't exist anymore.
 
-> NOTE The installer is able to download RHCOS image but when you run the script from outside of PSI DC, it will probably take too long and installer will time out. There are lastest official images `rhcos-4.3` and `rhcos-4.4` already uploaded in PSI so you can use that one and speed up the process.
+> NOTE The installer is able to download RHCOS image but when you run the script from outside of PSI DC, it will probably take too long and installer will time out. There are lastest official images `rhcos-4.3`, `rhcos-4.4` and `rhcos-4.5` already uploaded in PSI so you can use that one and speed up the process.
 
 ```
-OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE=rhcos-4.4
+OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE=rhcos-4.5
 PULL_SECRET_FILE=~/some-dir/pull-secret.json
 ./install-ipi-cluster.sh mycluster
 ```
