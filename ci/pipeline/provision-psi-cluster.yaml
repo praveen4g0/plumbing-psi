@@ -52,8 +52,6 @@ spec:
         value: "true"
       - name: sslVerify
         value: "false"
-      - name: subdirectory
-        value: e2e-psi-ocp
     workspaces:
     - name: output
       workspace: plumbing-git
@@ -66,8 +64,6 @@ spec:
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
-      - name: SUBDIR
-        value: e2e-psi-ocp
     workspaces:
     - name: install-dir
       workspace: install-dir

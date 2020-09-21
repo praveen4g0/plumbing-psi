@@ -1,0 +1,15 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: delete-older-pipelineruns
+spec:
+  steps:
+    - name: delete-pipelinerun
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      script: |
+        for pipelineRun in $(oc get pipelinerun -o go-template --template '{{range .items}}{{.metadata.name}} {{.metadata.creationTimestamp}}{{"\n"}}{{end}}' | awk '$2 <= "'$(date -d'now-2 days' -Ins --utc | sed 's/+0000/Z/')'" { print $1 }')
+        do
+          echo "Deleting pipelinerun $pipelineRun"
+          oc delete pipelinerun $pipelineRun
+        done
+

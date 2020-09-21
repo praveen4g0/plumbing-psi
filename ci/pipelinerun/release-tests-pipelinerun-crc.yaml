@@ -6,10 +6,6 @@ spec:
   pipelineRef:
     name: release-tests-crc
   timeout: 2h
-  resources:
-    - name: plumbing-repo
-      resourceRef:
-        name: plumbing-repo
   params:
   - name: CLUSTER_NAME
     value: e2ecrc
@@ -26,8 +22,13 @@ spec:
     persistentvolumeclaim:
       claimName: install-dir
   - name: plumbing-git
-    persistentvolumeclaim:
-      claimName: plumbing-git
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 500Mi
   - name: cnv-cluster-secrets
     secret:
       secretName: cnv-cluster

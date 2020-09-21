@@ -13,15 +13,13 @@ spec:
     - name: CLUSTER_NAME
       type: string
       description: cluster name
-    - name: SUBDIR
-      description: subdirectory where plumbing git repository was cloned
     - name: CHANNEL
       description: Place-holder to to provide subscription CHANNEL
       type: string
   steps:
     - name: uninstall-operator
       image: quay.io/openshift/origin-cli:latest
-      workingDir: "/plumbing/$(params.SUBDIR)"
+      workingDir: "/plumbing"
       script: |
           #!/usr/bin/env bash
           set -e -u -o pipefail

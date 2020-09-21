@@ -19,8 +19,13 @@ spec:
     persistentvolumeclaim:
       claimName: install-dir
   - name: plumbing-git
-    persistentvolumeclaim:
-      claimName: plumbing-git
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 500Mi
   - name: aws-secrets
     secret:
       secretName: aws

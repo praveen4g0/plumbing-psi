@@ -3,9 +3,6 @@ kind: Pipeline
 metadata:
   name: release-tests-crc
 spec:
-  resources:
-    - name: plumbing-repo
-      type: git
   params:
   - name: CLUSTER_NAME
     description: Cluster name
@@ -17,9 +14,6 @@ spec:
     description: To upload reports & logs to uploader hosts
   - name: CRC_BUNDLE
     description: The system bundle used for deployment of the OpenShift cluster
-  - name: SUBDIR
-    description: subdirectory where plumbing git repository should be cloned
-    default: e2e-crc
   workspaces:
   - name: install-dir
   - name: cnv-cluster-secrets
@@ -52,8 +46,6 @@ spec:
         value: "true"
       - name: sslVerify
         value: "false"
-      - name: subdirectory
-        value: $(params.SUBDIR)
     workspaces:
     - name: output
       workspace: plumbing-git    
@@ -65,8 +57,6 @@ spec:
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
-      - name: SUBDIR
-        value: $(params.SUBDIR)
     workspaces:
     - name: install-dir
       workspace: install-dir
@@ -80,8 +70,6 @@ spec:
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
-      - name: SUBDIR
-        value: $(params.SUBDIR)
     workspaces:
     - name: install-dir
       workspace: install-dir
@@ -130,10 +118,6 @@ spec:
   - name: upstream-cli-tests-ubuntu-16
     taskRef:
       name: run-cli-tests
-    resources:
-      inputs:
-        - name: plumbing-repo
-          resource: plumbing-repo
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
@@ -149,13 +133,11 @@ spec:
     workspaces:
       - name: install-dir
         workspace: install-dir
+      - name: plumbing-git
+        workspace: plumbing-git
   - name: upstream-cli-tests-rhel-8
     taskRef:
       name: run-cli-tests
-    resources:
-      inputs:
-        - name: plumbing-repo
-          resource: plumbing-repo
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
@@ -171,13 +153,11 @@ spec:
     workspaces:
       - name: install-dir
         workspace: install-dir
+      - name: plumbing-git
+        workspace: plumbing-git
   - name: upstream-cli-tests-fedora-31
     taskRef:
       name: run-cli-tests
-    resources:
-      inputs:
-        - name: plumbing-repo
-          resource: plumbing-repo
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
@@ -193,13 +173,11 @@ spec:
     workspaces:
       - name: install-dir
         workspace: install-dir
+      - name: plumbing-git
+        workspace: plumbing-git
   - name: upstream-cli-tests-windows-10
     taskRef:
       name: run-cli-tests
-    resources:
-      inputs:
-        - name: plumbing-repo
-          resource: plumbing-repo
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
@@ -215,6 +193,8 @@ spec:
     workspaces:
       - name: install-dir
         workspace: install-dir
+      - name: plumbing-git
+        workspace: plumbing-git
   - name: uninstall-pipelines-operator
     taskRef:
       name: uninstall-pipelines-operator
@@ -233,14 +213,13 @@ spec:
       workspace: install-dir
     - name: configmap
       workspace: configmap
+  finally:
   - name: destroy-crc-cluster
     taskRef:
         name: destroy-crc-cluster
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
-    runAfter:
-      - uninstall-pipelines-operator
     workspaces:
       - name: install-dir
         workspace: install-dir

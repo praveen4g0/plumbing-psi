@@ -13,12 +13,10 @@ spec:
     - name: CLUSTER_NAME
       type: string
       description: cluster name
-    - name: SUBDIR
-      description: subdirectory where plumbing git repository was cloned
   steps:
     - name: setup-testing-accounts
       image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
-      workingDir: "/plumbing/$(params.SUBDIR)"
+      workingDir: "/plumbing"
       script: |
           #!/usr/bin/env bash
           set -e -u -o pipefail
