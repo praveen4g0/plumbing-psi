@@ -23,6 +23,6 @@ spec:
       script: |
           #!/usr/bin/env bash
           set -e -u -o pipefail
-          export KUBECONFIG=$(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/kubeconfig
+          oc login -u kubeadmin -p $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/kubeadmin-password) $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/api-url) --insecure-skip-tls-verify=true
           
           config/operators/install-pipelines.sh $(params.CHANNEL)

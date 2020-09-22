@@ -227,9 +227,7 @@ spec:
     - upstream-cli-tests-windows-10
     params:
       - name: CLUSTER_NAME
-        value: $(params.CLUSTER_NAME)
-      - name: CHANNEL
-        value: $(params.CHANNEL)
+        value: $(params.CLUSTER_NAME)  
     workspaces:
     - name: install-dir
       workspace: install-dir

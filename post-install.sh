@@ -30,4 +30,6 @@ if [ -z $CI ]; then
 else
   # it's a temporary testing cluster
   $DIR/config/auth/01-test-auth.sh
+  # Add cluster roles & rolebindings to all test users
+  oc apply -f $DIR/config/roles/user-roles-to-run-release-tests.yaml
 fi

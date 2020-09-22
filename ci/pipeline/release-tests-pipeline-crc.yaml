@@ -6,6 +6,8 @@ spec:
   params:
   - name: CLUSTER_NAME
     description: Cluster name
+  - name: CHANNEL
+    description: subscription channel  
   - name: OPERATOR-ENV
     description: OpenShift Pipelines operator environment
   - name: RELEASE-TESTS-IMAGE
@@ -70,6 +72,8 @@ spec:
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
+      - name: CHANNEL
+        value: $(params.CHANNEL)
     workspaces:
     - name: install-dir
       workspace: install-dir
