@@ -1,0 +1,88 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: setup-p12n-operator
+spec:
+  stepTemplate:
+    securityContext:
+      runAsUser: 0
+      privileged: true
+  workspaces:
+    - name: install-dir
+      mountPath: "/install-dir"
+      readOnly: true
+    - name: p12n-git
+      mountPath: "/op-p12n/productize-pipelines/"  
+  params:
+    - name: CLUSTER_NAME
+      type: string
+      description: cluster name
+      default: pipelines-ci
+    - name: OPERATOR_ENVIRONMENT
+      type: string
+      description: Specify p12n operator environment (stage, pre-stage, prod)
+      default: pre-stage
+    - name: CSV_VERSION
+      type: string
+      description: Sepcify operator CSV version (1.1.1, 1.2.0)
+      default: "1.1.1" 
+  steps:
+    - name: setup-p12n-operator
+      workingDir: "/op-p12n/productize-pipelines/"
+      image: docker.io/praveen4g0/fedora32:v2
+      script: |
+          #!/usr/bin/env bash
+          set -e -u -o pipefail
+          export SCRIPT_DIR=$(workspaces.p12n-git.path)
+          export WORKSPACE_DIR=$(workspaces.p12n-git.path)
+
+          if [ $(params.OPERATOR_ENVIRONMENT) == "stage" ]; then
+              export STAGE_USER=$STAGE_USER
+              export STAGE_PASS=$STAGE_PASS
+              export TOKEN=$STAGE_TOKEN
+          else
+              export TOKEN=$TOKEN    
+          fi
+          
+          source config.sh
+          source helper.sh
+          
+          print_line
+          echo "Installing prerequisites"
+          print_line
+
+          sudo pip install $(grep -ivE "rhpkg" requirements.txt)
+          
+          print_line
+          echo "Prerequisites setup is done"
+          print_line
+          
+          # login into cluster
+          oc login -u kubeadmin -p $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/kubeadmin-password) $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/api-url) --insecure-skip-tls-verify=true
+        
+          print_line
+          echo "Installing p12n $(params.OPERATOR_ENVIRONMENT) operator"
+          print_line
+         
+          CSV_VERSION=$(params.CSV_VERSION) ENVIRONMENT=$(params.OPERATOR_ENVIRONMENT)  ./install-productized-operator.sh
+      env:
+        - name: STAGE_USER
+          valueFrom:
+            secretKeyRef:
+              name: p12n
+              key: stage-user
+        - name: STAGE_PASS
+          valueFrom:
+            secretKeyRef:
+              name: p12n
+              key: stage-password
+        - name: STAGE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: p12n
+              key: stage-token
+        - name: TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: p12n
+              key: token            

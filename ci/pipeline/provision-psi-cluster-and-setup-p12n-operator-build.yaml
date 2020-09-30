@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: provision-psi-cluster
+  name: provision-psi-cluster-and-setup-p12n-build
 spec:
   params:
   - name: OPENSHIFT_INSTALLER_IMAGE
@@ -12,14 +12,21 @@ spec:
     description: openshift installer os image
   - name: CLUSTER_NAME
     type: string
-    description: Cluster Name
+    description: Cluster Name  
   - name: REPLICAS
     type: string
     description: How many replicas for the master and worker node
+  - name: OPERATOR_ENVIRONMENT
+    type: string
+    description: Specify p12n operator environment (stage, pre-stage, prod)
+  - name: CSV_VERSION
+    type: string
+    description: Sepcify operator CSV version (1.1.1, 1.2.0)
   workspaces:
   - name: install-dir
   - name: aws-secrets
   - name: psi-secrets
+  - name: p12n-git
   - name: plumbing-git
   tasks:
   - name: provision-cluster-psi
@@ -45,6 +52,8 @@ spec:
     taskRef:
       name: git-clone
       kind: ClusterTask
+    runAfter:
+      - provision-cluster-psi  
     params:
       - name: url
         value: https://gitlab.cee.redhat.com/tekton/plumbing.git
@@ -60,7 +69,6 @@ spec:
       name: setup-testing-accounts
     runAfter:
     - clone-plumbing-git
-    - provision-cluster-psi
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
@@ -68,4 +76,44 @@ spec:
     - name: install-dir
       workspace: install-dir
     - name: plumbing-git
-      workspace: plumbing-git
+      workspace: plumbing-git    
+  - name: clone-p12n-git
+    conditions:
+    - conditionRef: check-for-operator-environment
+      params:
+        - name: OPERATOR_ENVIRONMENT
+          value: $(params.OPERATOR_ENVIRONMENT)
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    runAfter:
+      - provision-cluster-psi  
+    params:
+      - name: url
+        value: https://gitlab.cee.redhat.com/tekton/productize-pipelines.git
+      - name: deleteExisting
+        value: "true"
+      - name: sslVerify
+        value: "false"
+      - name: revision
+        value: master
+    workspaces:
+    - name: output
+      workspace: p12n-git
+  - name: setup-p12n-operator
+    taskRef:
+      name: setup-p12n-operator
+    runAfter:
+      - clone-p12n-git
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+      - name: OPERATOR_ENVIRONMENT
+        value: $(params.OPERATOR_ENVIRONMENT)
+      - name: CSV_VERSION
+        value: $(params.CSV_VERSION)    
+    workspaces:
+      - name: install-dir
+        workspace: install-dir
+      - name: p12n-git
+        workspace: p12n-git  

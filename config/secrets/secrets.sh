@@ -30,11 +30,18 @@ ENCODED_PULL_SECRET=$(cat $DIR/pull-secret | $ENCODE_BASE64)
 
 echo -e "\nConfiguring OpenShift installer secrets"
 sed -e "s/\$PULL_SECRET/$ENCODED_PULL_SECRET/" \
-    -e "s/\$UPLOADER_USERNAME/$UPLOADER_USERNAME/" \
-    -e "s/\$UPLOADER_PASSWORD/$UPLOADER_PASSWORD/" \
+    -e "s/\$UPLOADER_USERNAME/$USERNAME/" \
+    -e "s/\$UPLOADER_PASSWORD/$PASSWORD/" \
     "$DIR/../../ci/secrets/openshift-install.yaml" | oc apply -f -
 
 echo -e "\nConfiguring PSI cloud credentials"
 sed -e "s/\$PSI_CLOUD_USERNAME/$PSI_CLOUD_USERNAME/g" \
     -e "s/\$PSI_CLOUD_PASSWORD/$PSI_CLOUD_PASSWORD/g" \
     "$DIR/../../ci/secrets/psi.yaml" | oc apply -f -
+
+echo -e "\nConfiguring p12n secrets"
+sed -e "s/\$STAGE_USER/$USERNAME/" \
+    -e "s/\$STAGE_PASSWORD/$PASSWORD/" \
+    -e "s/\$PRE_STAGE_TOKEN/$PRE_STAGE_TOKEN/" \
+    -e "s/\$STAGE_TOKEN/$STAGE_TOKEN/" \
+    "$DIR/../../ci/secrets/p12n.yaml" | oc apply -f -

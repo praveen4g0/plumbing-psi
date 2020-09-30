@@ -1,0 +1,19 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Condition
+metadata:
+  name: check-for-operator-environment
+spec:
+  params:
+  - name: OPERATOR_ENVIRONMENT
+    type: string
+  check:
+    image: alpine
+    script: |
+        #!/bin/sh
+        env=$(echo $(params.OPERATOR_ENVIRONMENT) | tr -s  '[:upper:]'  '[:lower:]')
+        case "$env" in
+        "pre-stage") echo "setting up p12n operator on $env environment.." && exit 0 ;;
+        "stage") echo "setting up p12n operator on $env environment.." && exit 0 ;;
+        "prod") echo "OPERATOR_ENV=$env, skipping stage setup.." && exit 1;;
+        *) echo -e "OPERATOR_ENV=$env, Not valid stage environment, skipping setup... \n[FYI] valid environments (stage/pre-stage)" && exit 1 ;;
+        esac

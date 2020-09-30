@@ -1,24 +1,29 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  generateName: provision-psi-cluster-
+  generateName: provision-psi-cluster-and-setup-p12n-operator-
 spec:
   pipelineRef:
-    name: provision-psi-cluster
+    name: provision-psi-cluster-and-setup-p12n-build
+  timeout: 1h
   params:
   - name: OPENSHIFT_INSTALLER_IMAGE
-    value: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.0
+    value: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.2
   - name: OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE
     value: rhcos-4.5
   - name: CLUSTER_NAME
     value: pipelines-ci
   - name: REPLICAS
     value: "2"
+  - name: OPERATOR_ENVIRONMENT
+    value: stage
+  - name: CSV_VERSION
+    value: "1.1.1"
   workspaces:
   - name: install-dir
     persistentvolumeclaim:
       claimName: install-dir
-  - name: plumbing-git
+  - name: p12n-git
     volumeClaimTemplate:
       spec:
         accessModes:
@@ -26,6 +31,14 @@ spec:
         resources:
           requests:
             storage: 500Mi
+  - name: plumbing-git
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 500Mi          
   - name: aws-secrets
     secret:
       secretName: aws
