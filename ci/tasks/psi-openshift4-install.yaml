@@ -26,7 +26,7 @@ spec:
     - name: OPENSHIFT_INSTALLER_IMAGE
       type: string
       description: openshift installer base image for upi installation
-      default: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.0
+      default: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.2
     - name: OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE
       type: string
       description: openshift installer os image

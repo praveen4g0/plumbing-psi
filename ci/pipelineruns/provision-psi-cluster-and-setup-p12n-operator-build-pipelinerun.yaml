@@ -16,7 +16,7 @@ spec:
   - name: REPLICAS
     value: "2"
   - name: OPERATOR_ENVIRONMENT
-    value: stage
+    value: prod
   - name: CSV_VERSION
     value: "1.1.1"
   workspaces:

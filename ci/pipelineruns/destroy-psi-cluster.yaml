@@ -7,7 +7,7 @@ spec:
     name: destroy-psi-cluster
   params:
   - name: OPENSHIFT_INSTALLER_IMAGE
-    value: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.0
+    value: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.2
   - name: CLUSTER_NAME
     value: pipelines-ci
   workspaces:
