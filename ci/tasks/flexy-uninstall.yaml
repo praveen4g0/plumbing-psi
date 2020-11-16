@@ -1,0 +1,58 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: flexy-uninstall
+spec:
+  workspaces:
+  - name: flexy-secrets
+  - name: flexy-output
+    mountPath: /mnt
+  - name: install-dir
+  params:
+  - name: CLUSTER_NAME
+    type: string
+    description: Cluster name
+  steps:
+    - name: uninstall
+      image: docker-registry.upshift.redhat.com/flexy/ocp4:v1.2
+      workingDir: $(workspaces.flexy-output.path)
+      script: |
+        #!/usr/bin/env bash
+        set -e
+
+        if [ ! -d "$(workspaces.install-dir.path)/$(params.CLUSTER_NAME)" ]; then
+          echo "Directory \"$(params.CLUSTER_NAME)\" does not exist."
+          exit 1
+        fi
+
+        while read line; do
+          if [ -z "$line" ]; then continue; fi
+          export "$line"
+        done < $(workspaces.flexy-secrets.path)/ENVIRONMENT
+
+        while read line; do
+          if [ -z "$line" ]; then continue; fi
+          export "$line"
+        done < $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/envvars
+
+        echo "Preparing environment variables and secrets"
+        mkdir config
+        if [[ "$VARIABLES_LOCATION" == *-on-aws* ]]; then
+          cp $(workspaces.flexy-secrets.path)/aws-config.yaml config/config.yaml
+          cp $(workspaces.flexy-secrets.path)/psi-pipelines-shared.pem config/
+          cp $(workspaces.flexy-secrets.path)/psi-pipelines-shared.pub config/
+          cp $(workspaces.flexy-secrets.path)/credentials config/
+        elif [[ "$VARIABLES_LOCATION" == *-on-osp* ]]; then
+          cp $(workspaces.flexy-secrets.path)/psi-config.yaml config/config.yaml
+        else 
+          echo "Only AWS and PSI templates are supported."
+          exit 2
+        fi
+
+        cp $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/installer-artifacts.zip .
+
+        echo "Running uninstallation script"
+        /usr/local/bin/install_entrypoint.sh destroy
+
+        echo "Removing directory $(params.CLUSTER_NAME)"
+        rm -rf $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)

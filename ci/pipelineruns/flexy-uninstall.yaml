@@ -1,0 +1,20 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: flexy-uninstall-
+spec:
+  pipelineRef:
+    name: flexy-uninstall
+  timeout: 30m
+  params:
+  - name: CLUSTER_NAME
+    value: ppitonak1109a
+  workspaces:
+  - name: flexy-output
+    emptyDir: {}
+  - name: flexy-secrets
+    secret:
+      secretName: flexy
+  - name: install-dir
+    persistentVolumeClaim:
+      claimName: install-dir

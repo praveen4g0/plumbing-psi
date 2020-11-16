@@ -1,0 +1,72 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: flexy-install
+spec:
+  params:
+  - name: CLUSTER_NAME
+    description: Cluster name
+  - name: GIT_PRIVATE_TEMPLATES_BRANCH
+    default: master
+  - name: GIT_PRIVATE_TEMPLATES_URI
+    default: https://gitlab.cee.redhat.com/aosqe/flexy-templates.git
+  - name: LAUNCHER_VARS
+    default: '{"installer_payload_image":"quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64"}'
+  - name: TEMPLATE
+    default: private-templates/functionality-testing/aos-4_6/ipi-on-osp/versioned-installer
+  workspaces:
+  - name: flexy-output
+  - name: flexy-secrets
+  - name: install-dir
+  - name: plumbing-git
+  tasks:
+  - name: provision-cluster
+    taskRef:
+      name: flexy-install
+    workspaces:
+    - name: flexy-output
+      workspace: flexy-output
+    - name: flexy-secrets
+      workspace: flexy-secrets
+    - name: install-dir
+      workspace: install-dir
+    params:
+    - name: CLUSTER_NAME
+      value: $(params.CLUSTER_NAME)
+    - name: GIT_PRIVATE_TEMPLATES_BRANCH
+      value: $(params.GIT_PRIVATE_TEMPLATES_BRANCH)
+    - name: GIT_PRIVATE_TEMPLATES_URI
+      value: $(params.GIT_PRIVATE_TEMPLATES_URI)
+    - name: LAUNCHER_VARS
+      value: $(params.LAUNCHER_VARS)
+    - name: TEMPLATE
+      value: $(params.TEMPLATE)
+  - name: clone-plumbing-git
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    runAfter:
+      - provision-cluster
+    params:
+      - name: url
+        value: https://gitlab.cee.redhat.com/tekton/plumbing.git
+      - name: deleteExisting
+        value: "true"
+      - name: sslVerify
+        value: "false"
+    workspaces:
+    - name: output
+      workspace: plumbing-git
+  - name: setup-testing-accounts
+    taskRef:
+      name: setup-testing-accounts
+    runAfter:
+    - clone-plumbing-git
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: plumbing-git
+      workspace: plumbing-git

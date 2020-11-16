@@ -1,0 +1,103 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: flexy-install
+spec:
+  workspaces:
+    - name: flexy-secrets
+    - name: flexy-output
+      mountPath: /mnt
+    - name: install-dir
+  params:
+    - name: CLUSTER_NAME
+      description: Cluster name
+    - name: GIT_PRIVATE_TEMPLATES_URI
+      default: https://gitlab.cee.redhat.com/aosqe/flexy-templates.git
+    - name: GIT_PRIVATE_TEMPLATES_BRANCH
+      default: master
+    - name: LAUNCHER_VARS
+      default: '{"installer_payload_image":"quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64"}'
+    - name: TEMPLATE
+      default: private-templates/functionality-testing/aos-4_6/ipi-on-osp/versioned-installer
+  steps:
+    - name: install-cluster
+      workingDir: $(workspaces.flexy-output.path)
+      image: docker-registry.upshift.redhat.com/flexy/ocp4:v1.2
+      script: |
+        #!/usr/bin/env bash
+
+        echo "Preparing Flexy configuration"
+
+        while read line; do
+          if [ -z "$line" ]; then continue; fi
+          export "$line"
+        done < $(workspaces.flexy-secrets.path)/ENVIRONMENT
+
+        export BUSHSLICER_PRIVATE_DIR="$(workspaces.flexy-output.path)/config"
+        export GIT_PRIVATE_TEMPLATES_BRANCH="$(params.GIT_PRIVATE_TEMPLATES_BRANCH)"
+        export GIT_PRIVATE_TEMPLATES_URI="$(params.GIT_PRIVATE_TEMPLATES_URI)"
+        export HOME=/home/jboss
+        export INSTANCE_NAME_PREFIX="$(params.CLUSTER_NAME)"
+        export LAUNCHER_VARS='$(params.LAUNCHER_VARS)'
+        export VARIABLES_LOCATION="$(params.TEMPLATE)"
+
+        mkdir config
+        if [[ "$VARIABLES_LOCATION" == *-on-aws* ]]; then
+          cp $(workspaces.flexy-secrets.path)/aws-config.yaml config/config.yaml
+          cp $(workspaces.flexy-secrets.path)/psi-pipelines-shared.pem config/
+          cp $(workspaces.flexy-secrets.path)/psi-pipelines-shared.pub config/
+          cp $(workspaces.flexy-secrets.path)/credentials config/
+        elif [[ "$VARIABLES_LOCATION" == *-on-osp* ]]; then
+          cp $(workspaces.flexy-secrets.path)/psi-config.yaml config/config.yaml
+        else
+          echo "Only AWS and PSI templates are supported."
+          exit 2
+        fi
+
+        /usr/local/bin/install_entrypoint.sh install || true
+
+        echo "Archiving cluster metadata"
+        cd $(workspaces.flexy-output.path)
+        /usr/local/bin/install_entrypoint.sh archive-artifacts || true
+        DEST_DIR=$(workspaces.install-dir.path)/$(params.CLUSTER_NAME)
+        SRC_DIR=$(workspaces.flexy-output.path)/flexy/workdir/install-dir
+
+        mkdir -p "$DEST_DIR"
+        cp installer-artifacts.zip "$DEST_DIR"
+        cp $(workspaces.flexy-output.path)/flexy/users.spec "$DEST_DIR"
+        echo BUSHSLICER_PRIVATE_DIR="$(workspaces.flexy-output.path)/config" >> "$DEST_DIR"/envvars
+        echo GIT_PRIVATE_TEMPLATES_BRANCH="$(params.GIT_PRIVATE_TEMPLATES_BRANCH)" >> "$DEST_DIR"/envvars
+        echo GIT_PRIVATE_TEMPLATES_URI="$(params.GIT_PRIVATE_TEMPLATES_URI)" >> "$DEST_DIR"/envvars
+        echo HOME=/home/jboss >> "$DEST_DIR"/envvars
+        echo INSTANCE_NAME_PREFIX="$(params.CLUSTER_NAME)" >> "$DEST_DIR"/envvars
+        echo LAUNCHER_VARS='$(params.LAUNCHER_VARS)' >> "$DEST_DIR"/envvars
+        echo VARIABLES_LOCATION="$(params.TEMPLATE)" >> "$DEST_DIR"/envvars
+
+        if [ -d $SRC_DIR/auth ]; then
+          cp -r "$SRC_DIR/auth" "$DEST_DIR"
+        fi
+    - name: login-to-cluster
+      workingDir: $(workspaces.install-dir.path)
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli
+      script: |
+        #!/usr/bin/env bash
+        set -e -u -o pipefail
+
+        CLUSTER_NAME=$(params.CLUSTER_NAME)
+
+        echo "Logging in to cluster $CLUSTER_NAME as kubeadmin"
+        export KUBECONFIG=$CLUSTER_NAME/auth/kubeconfig
+
+        APISERVER=$(oc config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+        echo "Login into PSI cluster using this command: 'oc login -u kubeadmin -p $(cat $CLUSTER_NAME/auth/kubeadmin-password) $APISERVER --insecure-skip-tls-verify=true'"
+
+        # Store api-server address in workspace for future use
+        echo $APISERVER > "$CLUSTER_NAME/auth/api-url"
+
+        # Sometime the url can let us down, so let's add a counter
+        i=1
+        while [[ $i -le 10 ]];do
+          oc login -u kubeadmin -p $(cat $CLUSTER_NAME/auth/kubeadmin-password) --insecure-skip-tls-verify=true && break
+          sleep 5
+         (( i++ ))
+        done

@@ -20,6 +20,7 @@ if [ -z $CI ]; then
   # it's a long-running production cluster, the one running our CI/CD system
   oc new-project pipelines-ci
 
+  $DIR/config/add-registry-cas.sh
   $DIR/config/prune-images.sh
   #$DIR/config/operators/cnv.sh
   $DIR/config/operators/container-security.sh

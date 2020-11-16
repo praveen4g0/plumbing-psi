@@ -2,11 +2,12 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 
-KUBEADMIN_PASS=$(oc get secret -n openshift-config htpass-secret -o jsonpath={.data.htpasswd} 2> /dev/null | base64 -d | grep kubeadmin)
+HTPASS_SECRET=$(oc get secret -n openshift-config htpass-secret -o jsonpath={.data.htpasswd} 2> /dev/null)
 if [ $? == 0 ]; then
-  echo "Kubeadmin password found in secret called 'htpass-secret'. This is expected on CRC clusters."
+  echo "Secret 'htpass-secret' found. This is expected on CRC or Flexy-provisioned clusters."
+
   HTPASSWD_FILE=$(mktemp /tmp/htpasswd.XXX)
-  echo $KUBEADMIN_PASS >> "$HTPASSWD_FILE"
+  echo $HTPASS_SECRET | base64 -d >> "$HTPASSWD_FILE"
   cat $DIR/users.htpasswd >> "$HTPASSWD_FILE"
 
   echo "Updating secret htpass-secret"
@@ -26,15 +27,3 @@ oc create clusterrolebinding pipelinesdeveloper_basic_user --clusterrole=basic-u
 
 oc create clusterrolebinding consoledeveloper_self_provisioner --clusterrole=self-provisioner --user=consoledeveloper
 oc create clusterrolebinding consoledeveloper_view --clusterrole=view --user=consoledeveloper
-
-echo -e "Use one of the following users to login:\n"
-echo "Username           | Password    | Cluster roles "
-echo "-------------------|-----------------------------------------"
-echo "consoledeveloper   | developer   | self-provisioner, view    "
-echo "pipelinesdeveloper | developer   | basic-user                "
-echo "user               | user        | default                   "
-echo "user1              | user1       | default                   "
-echo "...                | ...         | ...                       "
-echo "user9              | user9       | default                   "
-echo "-------------------------------------------------------------"
-
