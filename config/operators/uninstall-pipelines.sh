@@ -15,4 +15,4 @@ oc delete $(oc get csv  -n openshift-operators -o name) -n openshift-operators  
 oc delete -n openshift-operators installplan $(oc get subscription openshift-pipelines-operator-rh -n openshift-operators -o jsonpath='{.status.installplan.name}')  --cascade=true
 
 # Delete Pipelines operator subscription
-oc delete subscription openshift-pipelines-operator -n openshift-operators 
+oc delete subscription openshift-pipelines-operator-rh -n openshift-operators 
