@@ -1,0 +1,117 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: release-tests-pipelines
+spec:
+  workspaces:
+    - name: install-dir
+      mountPath: "/install-dir"
+      readOnly: true
+    - name: tutorial-git
+      mountPath: "/go/src/github.com/openshift/pipelines-tutorial"    
+  params:
+  - name: IMAGE
+    type: string
+    description: Bootstrap image with required tools
+    default: praveen4g0/release-tests:v1.0.0
+  - name: CLUSTER_NAME
+    type: string
+    description: Cluster name
+    default: "openshift-pipelines-install"
+  steps:
+    - name: run-tutorial-demo-script
+      image: $(params.IMAGE)
+      workingDir: /go/src/github.com/openshift/pipelines-tutorial
+      script: |
+        #!/usr/bin/env bash
+        set -e -u -o pipefail
+
+        RANDOM=( $(shuf -i 1-9 -n 1) )
+        echo -e "Logging in as non-admin user: user$RANDOM"
+        oc login -u user$RANDOM -p user$RANDOM $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/api-url) --insecure-skip-tls-verify=true
+        
+        export NAMESPACE="pipelines-tutorial"
+
+        source demo.sh
+
+        function clean_test_namespaces() {
+            info "Ensure namespace $NAMESPACE exists"
+            oc get ns "$NAMESPACE" 2>/dev/null  || {
+              err 4 "Namespace $NAMESPACE doesn't exist"
+            }
+            info "Cleaning test namespaces"
+            oc delete project $NAMESPACE
+        }
+
+        info "Ensure Openshift pipelines deployed and api's are ready to use"
+        oc api-resources --api-group='tekton.dev'|grep "tekton" 2>/dev/null || {
+          err 4 "Openshift Pipelines not installed, Try again"
+        }
+
+        # Verify pre-requisites & setup required resources(pipelines, triggers) to run tutorial against latest build 
+        ./demo.sh setup
+        trap clean_test_namespaces ERR EXIT
+
+        if [ $? != 0 ]; then
+          err 1 "Failed to setup pre-requisites"
+        fi
+
+        # Helps you run pipelines which build & deploy Vote application
+        ./demo.sh run
+
+        if [ $? != 0 ]; then
+          ./demo.sh log
+          err 10 "Failed to deploy vote application"
+        fi
+
+        sleep 5
+        APP_URL=$(oc get route vote-ui -n $NAMESPACE --template='http://{{.spec.host}}')
+        info "Get Application URL: $APP_URL"
+
+        info "Preview vote application state"
+        lynx $APP_URL --dump
+
+        info "\U0001F389 \U0001F389 Application is up! \U0001F389 \U0001F389"
+
+        route=$(oc get route  -l eventlistener=vote-app -n $NAMESPACE -o name)
+        url=$(oc get $route --template='http://{{.spec.host}}' -n $NAMESPACE)
+        info "Eventlistener Route URL: $url"
+      
+        # Create and link secrets at runtime
+        info "Create and link secerts to pipelines sa"
+        oc create secret generic regcreds --from-literal=secretToken="1234567" -n $NAMESPACE
+        oc secret link serviceaccount/pipeline secrets/regcreds -n $NAMESPACE
+
+        # Mock vote-api Github push event
+        info "Mocking vote-api github push event"
+        curl -X POST \
+          ${url} \
+        -H 'Content-Type: application/json' \
+        -H 'X-Hub-Signature: sha1=648f5f80956fa5eb25e91391e91bba88556d05f3' \
+        -d '{"head_commit": { "id": "master"},"repository":{"url": "https://github.com/openshift-pipelines/vote-api.git", "name": "vote-api"}}'
+
+        sleep 5
+        # Check for latest pipelinerun logs
+        info "Check for latest pipelinerun logs"
+        ./demo.sh logs
+
+        # Mock vote-ui Github push event
+        info "Mocking vote-ui github push event"
+        curl -X POST \
+          ${url} \
+        -H 'Content-Type: application/json' \
+        -H 'X-Hub-Signature: sha1=80c5be2df98752512b86a5fde7ad30981aaf6fc5' \
+        -d '{"head_commit": { "id": "master"},"repository":{"url": "https://github.com/openshift-pipelines/vote-ui.git", "name": "vote-ui"}}'
+
+        sleep 5
+        # Check for latest pipelinerun logs
+        info "Check for latest pipelinerun logs"
+        ./demo.sh logs
+        
+        info "Validate pipelineruns"
+        ./demo.sh validate_pipelinerun
+
+        info "Preview vote application state"
+        lynx $APP_URL --dump
+
+        info "\U0001F389 \U0001F389 Application is up! \U0001F389 \U0001F389"
