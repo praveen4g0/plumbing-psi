@@ -21,7 +21,8 @@ spec:
         set -e
 
         if [ ! -d "$(workspaces.install-dir.path)/$(params.CLUSTER_NAME)" ]; then
-          echo "Directory \"$(params.CLUSTER_NAME)\" does not exist."
+          echo "Directory \"$(params.CLUSTER_NAME)\" does not exist. List of existing directories:"
+          ls "$(workspaces.install-dir.path)" | grep -v "lost+found"
           exit 1
         fi
 

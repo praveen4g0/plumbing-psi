@@ -15,6 +15,9 @@ spec:
       default: https://gitlab.cee.redhat.com/aosqe/flexy-templates.git
     - name: GIT_PRIVATE_TEMPLATES_BRANCH
       default: master
+    - name: LAUNCHER_VARS
+      default: ""
+      description: JSON object with additional template configuration.
     - name: OPENSHIFT_VERSION
       default: stable
       description: |
@@ -58,6 +61,7 @@ spec:
         export GIT_PRIVATE_TEMPLATES_URI="$(params.GIT_PRIVATE_TEMPLATES_URI)"
         export HOME=/home/jboss
         export INSTANCE_NAME_PREFIX="$(params.CLUSTER_NAME)"
+        export LAUNCHER_VARS='$(params.LAUNCHER_VARS)'
         export VARIABLES_LOCATION="$(params.TEMPLATE)"
 
         MIRROR_URL=https://mirror.openshift.com/pub/openshift-v4/clients/ocp
@@ -73,8 +77,8 @@ spec:
           exit 1
         fi
 
-        export LAUNCHER_VARS={\"installer_payload_image\":\"$IMAGE\"}
-        exit 1
+        IMAGE={\"installer_payload_image\":\"$IMAGE\"}
+        LAUNCHER_VARS=$(echo "$IMAGE" "$LAUNCHER_VARS" | jq -c -s add)
 
         mkdir config
         if [[ "$VARIABLES_LOCATION" == *-on-aws* ]]; then
@@ -89,7 +93,8 @@ spec:
           exit 2
         fi
 
-        /usr/local/bin/install_entrypoint.sh install || true
+        ret=0
+        /usr/local/bin/install_entrypoint.sh install || ret=$?
 
         echo "Archiving cluster metadata"
         /usr/local/bin/install_entrypoint.sh archive-artifacts || true
@@ -110,6 +115,8 @@ spec:
         if [ -d $SRC_DIR/auth ]; then
           cp -r "$SRC_DIR/auth" "$DEST_DIR"
         fi
+
+        exit $ret
     - name: login-to-cluster
       workingDir: $(workspaces.install-dir.path)
       image: image-registry.openshift-image-registry.svc:5000/openshift/cli

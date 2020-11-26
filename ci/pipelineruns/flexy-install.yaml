@@ -9,8 +9,13 @@ spec:
   params:
   - name: CLUSTER_NAME
     value: test46
+  - name: LAUNCHER_VARS
+    value: >-
+      {
+      "num_workers":2
+      }
   - name: OPENSHIFT_VERSION
-    value: 4.6.4
+    value: stable-4.6
   - name: TEMPLATE
     value: private-templates/functionality-testing/aos-4_6/ipi-on-osp/versioned-installer
   workspaces:

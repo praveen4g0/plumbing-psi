@@ -10,6 +10,8 @@ spec:
     default: master
   - name: GIT_PRIVATE_TEMPLATES_URI
     default: https://gitlab.cee.redhat.com/aosqe/flexy-templates.git
+  - name: LAUNCHER_VARS
+    default: ""
   - name: OPENSHIFT_VERSION
     default: stable
   - name: TEMPLATE
@@ -37,6 +39,8 @@ spec:
       value: $(params.GIT_PRIVATE_TEMPLATES_BRANCH)
     - name: GIT_PRIVATE_TEMPLATES_URI
       value: $(params.GIT_PRIVATE_TEMPLATES_URI)
+    - name: LAUNCHER_VARS
+      value: $(params.LAUNCHER_VARS)
     - name: OPENSHIFT_VERSION
       value: $(params.OPENSHIFT_VERSION)
     - name: TEMPLATE
