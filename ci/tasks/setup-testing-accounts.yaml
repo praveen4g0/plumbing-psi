@@ -29,7 +29,7 @@ spec:
           # Add cluster roles & rolebindings to all test users
           oc apply -f config/roles/user-roles-to-run-release-tests.yaml
 
-          echo -e "\nLogin into PSI cluster using this command: 'oc login -u <username> -p <password> $APISERVER --insecure-skip-tls-verify=true'"
+          echo -e "\nLogin into PSI cluster using this command: 'oc login -u kubeadmin -p $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/kubeadmin-password) $APISERVER --insecure-skip-tls-verify=true'"
           echo "Access the OpenShift web-console here: https://$(oc get route console -n openshift-console -o jsonpath={.spec.host})"
 
           echo -e "Use one of the following users to login:\n"

@@ -8,7 +8,7 @@ spec:
   timeout: 30m
   params:
   - name: CLUSTER_NAME
-    value: ppitonak1109a
+    value: test46
   workspaces:
   - name: flexy-output
     emptyDir: {}

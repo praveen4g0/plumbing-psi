@@ -19,6 +19,10 @@ spec:
       default: '{"installer_payload_image":"quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64"}'
     - name: TEMPLATE
       default: private-templates/functionality-testing/aos-4_6/ipi-on-osp/versioned-installer
+      description: |
+        Flexy template that will be used for installation. Browse
+        https://gitlab.cee.redhat.com/aosqe/flexy-templates/-/tree/master/functionality-testing
+        for the list of all available templates.
   steps:
     - name: install-cluster
       workingDir: $(workspaces.flexy-output.path)
@@ -57,14 +61,13 @@ spec:
         /usr/local/bin/install_entrypoint.sh install || true
 
         echo "Archiving cluster metadata"
-        cd $(workspaces.flexy-output.path)
         /usr/local/bin/install_entrypoint.sh archive-artifacts || true
         DEST_DIR=$(workspaces.install-dir.path)/$(params.CLUSTER_NAME)
         SRC_DIR=$(workspaces.flexy-output.path)/flexy/workdir/install-dir
 
         mkdir -p "$DEST_DIR"
         cp installer-artifacts.zip "$DEST_DIR"
-        cp $(workspaces.flexy-output.path)/flexy/users.spec "$DEST_DIR"
+        cp $(workspaces.flexy-output.path)/flexy/users.spec "$DEST_DIR" 2> /dev/null
         echo BUSHSLICER_PRIVATE_DIR="$(workspaces.flexy-output.path)/config" >> "$DEST_DIR"/envvars
         echo GIT_PRIVATE_TEMPLATES_BRANCH="$(params.GIT_PRIVATE_TEMPLATES_BRANCH)" >> "$DEST_DIR"/envvars
         echo GIT_PRIVATE_TEMPLATES_URI="$(params.GIT_PRIVATE_TEMPLATES_URI)" >> "$DEST_DIR"/envvars

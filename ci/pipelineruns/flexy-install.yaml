@@ -8,9 +8,13 @@ spec:
   timeout: 3h
   params:
   - name: CLUSTER_NAME
-    value: ppitonak1109a
+    value: test46
   - name: LAUNCHER_VARS
-    value: '{"installer_payload_image":"quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64"}'
+    value: >-
+      {
+      "installer_payload_image":"quay.io/openshift-release-dev/ocp-release:4.6.5-x86_64",
+      "num_workers": 2
+      }
   - name: TEMPLATE
     value: private-templates/functionality-testing/aos-4_6/ipi-on-osp/versioned-installer
   workspaces:
