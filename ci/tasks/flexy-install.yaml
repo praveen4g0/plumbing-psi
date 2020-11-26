@@ -15,8 +15,23 @@ spec:
       default: https://gitlab.cee.redhat.com/aosqe/flexy-templates.git
     - name: GIT_PRIVATE_TEMPLATES_BRANCH
       default: master
-    - name: LAUNCHER_VARS
-      default: '{"installer_payload_image":"quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64"}'
+    - name: OPENSHIFT_VERSION
+      default: stable
+      description: |
+        Choose one of the versions available on following URLs:
+          * https://mirror.openshift.com/pub/openshift-v4/clients/ocp
+          * https://mirror.openshift.com/pub/openshift-v4/clients/ocp-dev-preview
+
+        Examples:
+          stable         latest stable release
+          stable-4.6     latest stable 4.6 release
+          fast-4.6       latest fast 4.6 release (supported, guaranteed to have an upgrade path in the future)
+          candidate-4.6  latest candidate 4.6 release (unsupported, might not be possible to upgrade)
+          4.5.20         specific stable release or release candidate
+          dev-preview/latest-4.7
+                         latest nightly 4.7 release (unsupported)
+          dev-preview/4.7.0-0.nightly-2020-11-25-114114
+                         specific nightly release (unsupported, will disappear after some time)
     - name: TEMPLATE
       default: private-templates/functionality-testing/aos-4_6/ipi-on-osp/versioned-installer
       description: |
@@ -29,6 +44,7 @@ spec:
       image: docker-registry.upshift.redhat.com/flexy/ocp4:v1.2
       script: |
         #!/usr/bin/env bash
+        set -o pipefail
 
         echo "Preparing Flexy configuration"
 
@@ -42,8 +58,23 @@ spec:
         export GIT_PRIVATE_TEMPLATES_URI="$(params.GIT_PRIVATE_TEMPLATES_URI)"
         export HOME=/home/jboss
         export INSTANCE_NAME_PREFIX="$(params.CLUSTER_NAME)"
-        export LAUNCHER_VARS='$(params.LAUNCHER_VARS)'
         export VARIABLES_LOCATION="$(params.TEMPLATE)"
+
+        MIRROR_URL=https://mirror.openshift.com/pub/openshift-v4/clients/ocp
+        if [[ "$(params.OPENSHIFT_VERSION)" == *dev-preview* ]]; then
+          URL="${MIRROR_URL}-$(params.OPENSHIFT_VERSION)"
+        else
+          URL="${MIRROR_URL}/$(params.OPENSHIFT_VERSION)"
+        fi
+
+        IMAGE=$(curl ${URL}/release.txt 2>/dev/null | grep "Pull From:" | cut -d" " -f3)
+        if [ $? != 0 ]; then
+          echo "URL ${URL}/release.txt not found."
+          exit 1
+        fi
+
+        export LAUNCHER_VARS={\"installer_payload_image\":\"$IMAGE\"}
+        exit 1
 
         mkdir config
         if [[ "$VARIABLES_LOCATION" == *-on-aws* ]]; then
@@ -73,7 +104,7 @@ spec:
         echo GIT_PRIVATE_TEMPLATES_URI="$(params.GIT_PRIVATE_TEMPLATES_URI)" >> "$DEST_DIR"/envvars
         echo HOME=/home/jboss >> "$DEST_DIR"/envvars
         echo INSTANCE_NAME_PREFIX="$(params.CLUSTER_NAME)" >> "$DEST_DIR"/envvars
-        echo LAUNCHER_VARS='$(params.LAUNCHER_VARS)' >> "$DEST_DIR"/envvars
+        echo "LAUNCHER_VARS=$LAUNCHER_VARS" >> "$DEST_DIR"/envvars
         echo VARIABLES_LOCATION="$(params.TEMPLATE)" >> "$DEST_DIR"/envvars
 
         if [ -d $SRC_DIR/auth ]; then
