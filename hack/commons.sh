@@ -170,7 +170,7 @@ function run_triggers_tests {
   sleep 5
   # Check for latest pipelinerun logs
   info "Check for latest pipelinerun logs"
-  $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh logs
+  .$GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh logs
 
   # Mock vote-ui Github push event
   info "Mocking vote-ui github push event"
@@ -183,10 +183,10 @@ function run_triggers_tests {
   sleep 5
   # Check for latest pipelinerun logs
   info "Check for latest pipelinerun logs"
-  $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh logs
+  .$GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh logs
   
   info "Validate pipelineruns"
-  $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh validate_pipelinerun || return $?
+  .$GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh validate_pipelinerun || return $?
 
   info "Preview vote application state"
   lynx $APP_URL --dump || return $?

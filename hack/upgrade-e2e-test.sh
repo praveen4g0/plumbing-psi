@@ -37,16 +37,16 @@ function run_rolling_upgrade_tests {
     
     trap clean_test_namespaces ERR EXIT
     if (( pipelines_in_scope )); then
-        $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh setup-pipeline || return $?
+        .$GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh setup-pipeline || return $?
 
     fi
     if (( triggers_in_scope )); then
-        $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh setup-triggers ||  return $?
+        .$GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh setup-triggers ||  return $?
     fi
 
     header "Running pre-upgrade tests"
     if (( pipelines_in_scope )); then
-        $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh run || return $?
+        .$GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh run || return $?
     fi
     
     if (( triggers_in_scope )); then
@@ -67,7 +67,7 @@ function run_rolling_upgrade_tests {
 
     header 'Running post-upgrade tests'
     if (( pipelines_in_scope )); then
-        $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh run || return $?
+        .$GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh run || return $?
     fi
     
     if (( triggers_in_scope )); then
