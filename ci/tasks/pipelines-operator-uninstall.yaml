@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: uninstall-pipelines-operator
+  name: uninstall-pipelines-operator-1
 spec:
   workspaces:
     - name: install-dir
@@ -38,3 +38,9 @@ spec:
           #Gauge run command
           ls -a $GOPATH/src/github.com/openshift-pipelines/release-tests
           gauge run --env "default, test" --tags "uninstall" --log-level=debug --verbose   $GOPATH/src/github.com/openshift-pipelines/release-tests/specs/olm.spec
+
+          echo -e "Ensure config crds exists"
+          oc get crds config.operator.tekton.dev 2>/dev/null && echo -e "Deleting config crd" && oc delete  crds config.operator.tekton.dev || {
+              echo -e "config CRD dosen't exist" \
+              && failed=1
+          }

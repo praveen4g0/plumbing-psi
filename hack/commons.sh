@@ -4,8 +4,7 @@ set -e -u -o pipefail
 NAMESPACE=${NAMESPACE:-"pipelines-tutorial"}
 
 failed=0
-PREVIOUS_CHANNEL=${PREVIOUS_CHANNEL:-}
-CURRENT_CHANNEL=${CURRENT_CHANNEL:-}
+CURRENT_VERSION=${CURRENT_VERSION:-}
 UPGRADE_OCP_IMAGE=${UPGRADE_OCP_IMAGE:-}
 UPGRADE_CLUSTER=${UPGRADE_CLUSTER:-false}
 
@@ -35,7 +34,7 @@ print_err_without_exit() {
     log.err $msg
 }
 
-if [ -z $CURRENT_CHANNEL ]; then
+if [ -z $CURRENT_VERSION ]; then
   echo -e "Specify desired operator current channel as a parameter of this script \n"
   echo "Usage:"
   echo "  $0 [channel]"
@@ -171,7 +170,7 @@ function run_triggers_tests {
   sleep 5
   # Check for latest pipelinerun logs
   info "Check for latest pipelinerun logs"
-  ./demo.sh logs
+  $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh logs
 
   # Mock vote-ui Github push event
   info "Mocking vote-ui github push event"
@@ -184,10 +183,10 @@ function run_triggers_tests {
   sleep 5
   # Check for latest pipelinerun logs
   info "Check for latest pipelinerun logs"
-  ./demo.sh logs
+  $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh logs
   
   info "Validate pipelineruns"
-  ./demo.sh validate_pipelinerun || return $?
+  $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh validate_pipelinerun || return $?
 
   info "Preview vote application state"
   lynx $APP_URL --dump || return $?

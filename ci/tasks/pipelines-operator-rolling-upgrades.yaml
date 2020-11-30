@@ -27,6 +27,7 @@ spec:
       default: quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64
   steps:
     - name: install-openshift-pipelines-operator
+      workingDir: /go/src/github.com/openshift-pipelines/plumbing
       image: $(params.IMAGE)
       script: |
          #!/usr/bin/env bash
@@ -45,10 +46,8 @@ spec:
           gauge config plugin_connection_timeout 3600000 && \
           gauge config plugin_kill_timeout 3600000
 
-          source $(workspaces.git.path)/plumbing/hack/commons.sh
-          cd $(workspaces.git.path)/tutorial
           if [[ $UPGRADE_CLUSTER == true ]]; then
-            CURRENT_VERSION=$(params.CHANNEL) UPGRADE_OCP_IMAGE=$(params.UPGRADE_OCP_IMAGE) ./$(workspaces.git.path)/plumbing/hack/upgrade-e2e-test.sh
+            CURRENT_VERSION=$(params.CHANNEL) UPGRADE_OCP_IMAGE=$(params.UPGRADE_OCP_IMAGE) ./hack/upgrade-e2e-test.sh
           else
-            CURRENT_VERSION=$(params.CHANNEL) ./$(workspaces.git.path)/plumbing/hack/upgrade-e2e-test.sh
+            CURRENT_VERSION=$(params.CHANNEL) ./hack/upgrade-e2e-test.sh
           fi

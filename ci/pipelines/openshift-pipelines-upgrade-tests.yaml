@@ -112,7 +112,7 @@ spec:
     workspaces:
     - name: output
       workspace: git
-      subPath: tutorial
+      subPath: pipelines-tutorial
   - name: clone-release-tests-git
     taskRef:
       name: git-clone
@@ -171,7 +171,7 @@ spec:
       workspace: git   
   - name: uninstall-pipelines-operator
     taskRef:
-      name: uninstall-pipelines-operator
+      name: uninstall-pipelines-operator-1
     params:
     - name: IMAGE
       value: $(params.RELEASE-TESTS-IMAGE)

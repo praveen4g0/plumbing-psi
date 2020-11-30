@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e -u -o pipefail
 
+source hack/commons.sh
+
 info "Cluster upgrade : [$UPGRADE_CLUSTER]"
 
 function install_openshift_pipelines_operator {
@@ -35,16 +37,16 @@ function run_rolling_upgrade_tests {
     
     trap clean_test_namespaces ERR EXIT
     if (( pipelines_in_scope )); then
-        ./demo.sh setup-pipeline || return $?
+        $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh setup-pipeline || return $?
 
     fi
     if (( triggers_in_scope )); then
-        ./demo.sh setup-triggers ||  return $?
+        $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh setup-triggers ||  return $?
     fi
 
     header "Running pre-upgrade tests"
     if (( pipelines_in_scope )); then
-        ./demo.sh run || return $?
+        $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh run || return $?
     fi
     
     if (( triggers_in_scope )); then
@@ -65,7 +67,7 @@ function run_rolling_upgrade_tests {
 
     header 'Running post-upgrade tests'
     if (( pipelines_in_scope )); then
-        ./demo.sh run || return $?
+        $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh run || return $?
     fi
     
     if (( triggers_in_scope )); then
@@ -74,12 +76,6 @@ function run_rolling_upgrade_tests {
 }
 
 run_rolling_upgrade_tests "${UPGRADE_TEST_SCOPE:-pipelines,triggers}" || failed=1
-
-info "Ensure config crds exists"
-oc get crds config.operator.tekton.dev 2>/dev/null && info "Deleting config crd" && oc delete  crds config.operator.tekton.dev || {
-    info "config CRD dosen't exist" \
-    && failed=1
-}
   
 (( failed )) && fail_test
 success
