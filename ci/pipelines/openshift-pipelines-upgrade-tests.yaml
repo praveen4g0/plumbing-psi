@@ -1,0 +1,187 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: openshift-pipelines-upgrade-tests
+spec:
+  params:
+  - name: CLUSTER_NAME
+    description: Cluster name
+  - name: GIT_PRIVATE_TEMPLATES_BRANCH
+    default: master
+  - name: GIT_PRIVATE_TEMPLATES_URI
+    default: https://gitlab.cee.redhat.com/aosqe/flexy-templates.git
+  - name: LAUNCHER_VARS
+    default: ""
+  - name: OPENSHIFT_VERSION
+    default: stable
+  - name: TEMPLATE
+    default: private-templates/functionality-testing/aos-4_6/ipi-on-osp/versioned-installer
+  - name: TUTORIAL_BRANCH_REVISION
+    default: master
+  - name: RELEASE-TESTS-IMAGE
+    description: place holder for release-tests image
+    default: quay.io/praveen4g0/release-tests:v1.2.0
+  - name: PREVIOUS_CHANNEL
+    description: provide previous channel to which user have to subscribe to.
+  - name: CURRENT_CHANNEL
+    description: provide current channel to which user have to upgrade to. 
+  - name: UPGRADE_CLUSTER
+    description: flag to enable/disable cluster upgrade
+    default: "false"
+  - name: UPGRADE_OCP_IMAGE
+    description: (optional) ocp-image to which user have to upgrade cluster to.
+  workspaces:
+  - name: flexy-output
+  - name: flexy-secrets
+  - name: install-dir
+  - name: git
+  tasks:
+  - name: provision-cluster
+    taskRef:
+      name: flexy-install
+    workspaces:
+    - name: flexy-output
+      workspace: flexy-output
+    - name: flexy-secrets
+      workspace: flexy-secrets
+    - name: install-dir
+      workspace: install-dir
+    params:
+    - name: CLUSTER_NAME
+      value: $(params.CLUSTER_NAME)
+    - name: GIT_PRIVATE_TEMPLATES_BRANCH
+      value: $(params.GIT_PRIVATE_TEMPLATES_BRANCH)
+    - name: GIT_PRIVATE_TEMPLATES_URI
+      value: $(params.GIT_PRIVATE_TEMPLATES_URI)
+    - name: LAUNCHER_VARS
+      value: $(params.LAUNCHER_VARS)
+    - name: OPENSHIFT_VERSION
+      value: $(params.OPENSHIFT_VERSION)
+    - name: TEMPLATE
+      value: $(params.TEMPLATE)  
+  - name: clone-plumbing-git
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    runAfter:
+      - provision-cluster
+    params:
+      - name: url
+        value: https://gitlab.cee.redhat.com/pthangad/plumbing.git
+      - name: deleteExisting
+        value: "true"
+      - name: sslVerify
+        value: "false"
+      - name: revision
+        value: flexy_install
+    workspaces:
+    - name: output
+      workspace: git
+      subPath: plumbing
+  - name: setup-testing-accounts
+    taskRef:
+      name: setup-testing-accounts
+    runAfter:
+    - clone-plumbing-git
+    - clone-tutorials-git
+    - clone-release-tests-git
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: plumbing-git
+      workspace: git
+      subPath: plumbing
+  - name: clone-tutorials-git
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    runAfter:
+      - provision-cluster
+    params:
+      - name: url
+        value: https://github.com/openshift/pipelines-tutorial.git
+      - name: deleteExisting
+        value: "true"
+      - name: sslVerify
+        value: "false"
+      - name: revision
+        value: $(params.TUTORIAL_BRANCH_REVISION)
+    workspaces:
+    - name: output
+      workspace: git
+      subPath: tutorial
+  - name: clone-release-tests-git
+    taskRef:
+      name: git-clone
+      kind: ClusterTask
+    runAfter:
+      - provision-cluster
+    params:
+      - name: url
+        value: https://github.com/openshift-pipelines/release-tests.git
+      - name: deleteExisting
+        value: "true"
+      - name: sslVerify
+        value: "false"
+    workspaces:
+    - name: output
+      workspace: git
+      subPath: release-tests
+  - name: install-pipelines-operator
+    taskRef:
+      name: install-pipelines-operator
+    params:
+    - name: IMAGE
+      value: $(params.RELEASE-TESTS-IMAGE)
+    - name: CLUSTER_NAME
+      value: $(params.CLUSTER_NAME)
+    - name: CHANNEL
+      value: $(params.PREVIOUS_CHANNEL)
+    runAfter:
+    - setup-testing-accounts
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: git
+      workspace: git
+      subPath: release-tests
+  - name: rolling-upgrade-tests
+    taskRef:
+      name: rolling-upgrade-tests
+    params:
+    - name: IMAGE
+      value: $(params.RELEASE-TESTS-IMAGE)
+    - name: CLUSTER_NAME
+      value: $(params.CLUSTER_NAME)
+    - name: CHANNEL
+      value: $(params.CURRENT_CHANNEL)
+    - name: UPGRADE_CLUSTER
+      value: $(params.UPGRADE_CLUSTER)
+    - name: UPGRADE_OCP_IMAGE
+      value: $(params.UPGRADE_OCP_IMAGE)
+    runAfter:
+    - install-pipelines-operator
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: git
+      workspace: git   
+  - name: uninstall-pipelines-operator
+    taskRef:
+      name: uninstall-pipelines-operator
+    params:
+    - name: IMAGE
+      value: $(params.RELEASE-TESTS-IMAGE)
+    - name: CLUSTER_NAME
+      value: $(params.CLUSTER_NAME)
+    runAfter:
+    - rolling-upgrade-tests
+    workspaces:
+    - name: install-dir
+      workspace: install-dir
+    - name: git
+      workspace: git
+      subPath: release-tests

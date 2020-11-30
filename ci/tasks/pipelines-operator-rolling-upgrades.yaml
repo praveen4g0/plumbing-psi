@@ -1,0 +1,54 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: rolling-upgrade-tests
+spec:
+  workspaces:
+    - name: install-dir
+      mountPath: "/install-dir"
+      readOnly: true
+    - name: git
+      mountPath: "/go/src/github.com/openshift-pipelines"
+  params:
+    - name: IMAGE
+      type: string
+      description: release-tests image
+      default: quay.io/praveen4g0/release-tests:v1.2.1
+    - name: CLUSTER_NAME
+      type: string
+      description: cluster name
+    - name: CHANNEL
+      description: Specify desired operator current channel as a parameter of this script
+      default: preview
+    - name: UPGRADE_CLUSTER
+      description: place-holder to provide flag true/false to UPGRADE_CLUSTER
+    - name: UPGRADE_OCP_IMAGE
+      description: Specify desired OCP image to upgrade cluster with as a parameter of this script
+      default: quay.io/openshift-release-dev/ocp-release:4.6.4-x86_64
+  steps:
+    - name: install-openshift-pipelines-operator
+      image: $(params.IMAGE)
+      script: |
+         #!/usr/bin/env bash
+          set -e -u -o pipefail
+
+          # exporting required
+          export GOPATH=/go
+          export UPGRADE_CLUSTER=$(params.UPGRADE_CLUSTER)
+
+          oc login -u kubeadmin -p $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/kubeadmin-password) $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/api-url) --insecure-skip-tls-verify=true
+
+          #Gauge configuration
+          gauge config runner_connection_timeout 3600000 && \
+          gauge config runner_request_timeout 3600000 && \
+          gauge config ide_request_timeout 3600000 && \
+          gauge config plugin_connection_timeout 3600000 && \
+          gauge config plugin_kill_timeout 3600000
+
+          source $(workspaces.git.path)/plumbing/hack/commons.sh
+          cd $(workspaces.git.path)/tutorial
+          if [[ $UPGRADE_CLUSTER == true ]]; then
+            CURRENT_VERSION=$(params.CHANNEL) UPGRADE_OCP_IMAGE=$(params.UPGRADE_OCP_IMAGE) ./$(workspaces.git.path)/plumbing/hack/upgrade-e2e-test.sh
+          else
+            CURRENT_VERSION=$(params.CHANNEL) ./$(workspaces.git.path)/plumbing/hack/upgrade-e2e-test.sh
+          fi

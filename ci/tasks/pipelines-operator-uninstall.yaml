@@ -1,0 +1,40 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: uninstall-pipelines-operator
+spec:
+  workspaces:
+    - name: install-dir
+      mountPath: "/install-dir"
+      readOnly: true
+    - name: git
+      mountPath: "/go/src/github.com/openshift-pipelines/release-tests"
+  params:
+    - name: IMAGE
+      type: string
+      description: release-tests image
+      default: quay.io/praveen4g0/release-tests:v1.2.1
+    - name: CLUSTER_NAME
+      type: string
+      description: cluster name
+  steps:
+    - name: install-openshift-pipelines-operator
+      image: $(params.IMAGE)
+      script: |
+         #!/usr/bin/env bash
+          set -e -u -o pipefail
+
+          # exporting required
+          export GOPATH=/go
+          oc login -u kubeadmin -p $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/kubeadmin-password) $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/api-url) --insecure-skip-tls-verify=true
+
+          #Gauge configuration
+          gauge config runner_connection_timeout 3600000 && \
+          gauge config runner_request_timeout 3600000 && \
+          gauge config ide_request_timeout 3600000 && \
+          gauge config plugin_connection_timeout 3600000 && \
+          gauge config plugin_kill_timeout 3600000
+
+          #Gauge run command
+          ls -a $GOPATH/src/github.com/openshift-pipelines/release-tests
+          gauge run --env "default, test" --tags "uninstall" --log-level=debug --verbose   $GOPATH/src/github.com/openshift-pipelines/release-tests/specs/olm.spec
