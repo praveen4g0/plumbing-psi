@@ -93,7 +93,9 @@ function clean_test_namespaces() {
     && return 7
   }
   info "Cleaning test namespaces"
-  oc delete project $NAMESPACE
+  oc delete project $NAMESPACE --grace-period=0 --force
+
+
   
   return 0
 }
