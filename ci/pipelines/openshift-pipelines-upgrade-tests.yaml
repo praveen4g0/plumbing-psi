@@ -185,3 +185,17 @@ spec:
     - name: git
       workspace: git
       subPath: release-tests
+  finally:
+  - name: destroy-cluster
+    taskRef:
+        name: flexy-uninstall
+    params:
+      - name: CLUSTER_NAME
+        value: $(params.CLUSTER_NAME)
+    workspaces:
+      - name: install-dir
+        workspace: install-dir
+      - name: flexy-output
+        workspace: flexy-output
+      - name: flexy-secrets
+        workspace: flexy-secrets
