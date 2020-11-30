@@ -3,16 +3,10 @@ kind: Task
 metadata:
   name: setup-p12n-operator
 spec:
-  stepTemplate:
-    securityContext:
-      runAsUser: 0
-      privileged: true
   workspaces:
     - name: install-dir
       mountPath: "/install-dir"
       readOnly: true
-    - name: p12n-git
-      mountPath: "/op-p12n/productize-pipelines/"  
   params:
     - name: CLUSTER_NAME
       type: string
@@ -22,67 +16,178 @@ spec:
       type: string
       description: Specify p12n operator environment (stage, pre-stage, prod)
       default: pre-stage
-    - name: CSV_VERSION
+    - name: INDEX
       type: string
-      description: Sepcify operator CSV version (1.1.1, 1.2.0)
-      default: "1.1.1" 
+      description: Sepcify INDEX number (42312,...)
   steps:
     - name: setup-p12n-operator
-      workingDir: "/op-p12n/productize-pipelines/"
-      image: docker.io/praveen4g0/fedora32:v2
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
       script: |
           #!/usr/bin/env bash
-          set -e -u -o pipefail
-          export SCRIPT_DIR=$(workspaces.p12n-git.path)
-          export WORKSPACE_DIR=$(workspaces.p12n-git.path)
+          set -euo pipefail
 
-          if [ $(params.OPERATOR_ENVIRONMENT) == "stage" ]; then
-              export STAGE_USER=$STAGE_USER
-              export STAGE_PASS=$STAGE_PASS
-              export TOKEN=$STAGE_TOKEN
-          else
-              export TOKEN=$TOKEN    
-          fi
-          
-          source config.sh
-          source helper.sh
-          
-          print_line
-          echo "Installing prerequisites"
-          print_line
-
-          sudo pip install $(grep -ivE "rhpkg" requirements.txt)
-          
-          print_line
-          echo "Prerequisites setup is done"
-          print_line
-          
           # login into cluster
           oc login -u kubeadmin -p $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/kubeadmin-password) $(cat $(workspaces.install-dir.path)/$(params.CLUSTER_NAME)/auth/api-url) --insecure-skip-tls-verify=true
-        
-          print_line
-          echo "Installing p12n $(params.OPERATOR_ENVIRONMENT) operator"
-          print_line
-         
-          CSV_VERSION=$(params.CSV_VERSION) ENVIRONMENT=$(params.OPERATOR_ENVIRONMENT)  ./install-productized-operator.sh
+
+          BREW_IIB_PREFIX="brew.registry.redhat.io/rh-osbs/iib"
+          REGISTRY=${REGISTRY:-"brew.registry.redhat.io"}
+
+          export USERNAME=$BREW_USER
+          export PASSWORD=$BREW_PASS
+          export ENVIRONMENT=$(params.OPERATOR_ENVIRONMENT)
+
+          INDEX=${INDEX:-$(params.INDEX)}
+          test -z "${INDEX}" && {
+              echo "INDEX env variable is required"
+              exit 1
+          }
+
+          test -z "${USERNAME}" && {
+              echo "USERNAME env variable is required"
+              exit 1
+          }
+
+          test -z "${PASSWORD}" && {
+              echo "PASSWORD env variable is required"
+              exit 1
+          }
+
+          INDEX_IMAGE=$BREW_IIB_PREFIX:$INDEX
+          echo -e "Index image: $INDEX_IMAGE"
+          ENVSTAGE="stage"
+
+          if [[ ${ENVIRONMENT} = ${ENVSTAGE} ]]; then 
+            STAGE_PREFIX="registry.stage.redhat.io"
+          else
+            STAGE_PREFIX="registry-proxy.engineering.redhat.com"
+          fi
+
+          function reset() {
+            rm -rf authfile
+          }
+
+          oc get secret/pull-secret -n openshift-config -o json | jq -r '.data.".dockerconfigjson"' |
+          base64 -d > authfile
+          trap reset ERR EXIT
+
+          echo "Loggin to on brew-registry registry"
+          oc registry login  --insecure=true --registry=brew.registry.redhat.io --auth-basic="${USERNAME}:${PASSWORD}" --to=authfile
+
+          echo "set brew-registry authtication details to default pull-secret"
+          oc set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=authfile
+          sleep 3
+
+          echo -e "\nConfiguring imagecontentsourcepolicy.yaml"
+          oc apply -f - << EOD
+          apiVersion: operator.openshift.io/v1alpha1
+          kind: ImageContentSourcePolicy
+          metadata:
+            name: brew-registry
+          spec:
+            repositoryDigestMirrors:
+            - mirrors:
+              - $REGISTRY
+              source: registry.redhat.io
+            - mirrors:
+              - $REGISTRY
+              source: registry.stage.redhat.io
+            - mirrors:
+              - $REGISTRY
+              source: registry-proxy.engineering.redhat.com
+            - mirrors:
+              - $REGISTRY
+              source: docker.io
+            - mirrors:
+              - $REGISTRY
+              source: quay.io    
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-rhel8-operator
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-rhel8-operator
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-controller-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-controller-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-webhook-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-webhook-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-creds-init-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-creds-init-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-entrypoint-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-entrypoint-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-git-init-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-git-init-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-gcs-fetcher-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-gcs-fetcher-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-imagedigestexporter-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-imagedigestexporter-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-kubeconfigwriter-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-kubeconfigwriter-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-pullrequest-init-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-pullrequest-init-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-nop-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-nop-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-triggers-controller-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-triggers-controller-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-triggers-webhook-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-triggers-webhook-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-triggers-eventlistenersink-rhel8
+              source: registry.redhat.io/openshift-pipelines-tech-preview/pipelines-triggers-eventlistenersink-rhel8
+            - mirrors:
+              - $REGISTRY/rh-osbs/openshift-pipelines-tech-preview-pipelines-rhel8-operator-metadata
+              source: $STAGE_PREFIX/rh-osbs/openshift-pipelines-tech-preview-pipelines-rhel8-operator-metadata
+          EOD
+
+          echo ">> waiting for nodes to get restarted.."
+          machines=$(oc get machineconfigpool -o=jsonpath='{.items[*].metadata.name}{" "}')
+
+          sleep 60
+          for machine in ${machines}; do
+              echo ">> Waiting for machineconfigpool on node $machine to be in state Updated=true && Updating=false"
+              while true; do
+                sleep 3
+                oc wait --for=condition=Updated=True -n openshift-operators machineconfigpool $machine --timeout=5m && oc wait --for=condition=Updating=False -n openshift-operators machineconfigpool $machine --timeout=5m > /dev/null 2>&1 && break
+              done
+          done
+          
+          sleep 3
+          
+          echo -e "Delete default operator sources"
+          oc patch operatorhub.config.openshift.io/cluster -p='{"spec":{"disableAllDefaultSources":true}}' --type=merge
+          
+          echo -e "Apply catalog source"
+          oc apply -f - << EOD
+          apiVersion: operators.coreos.com/v1alpha1
+          kind: CatalogSource
+          metadata:
+            name: pre-stage-operators
+            namespace: openshift-marketplace
+          spec:
+            displayName: pre-stage-operators
+            image: $INDEX_IMAGE
+            publisher: openshift-pipelines
+            sourceType: grpc
+            updateStrategy:
+              registryPoll:
+                interval: 20m
+          EOD
       env:
-        - name: STAGE_USER
+        - name: BREW_USER
           valueFrom:
             secretKeyRef:
               name: p12n
-              key: stage-user
-        - name: STAGE_PASS
+              key: brew-user
+        - name: BREW_PASS
           valueFrom:
             secretKeyRef:
               name: p12n
-              key: stage-password
-        - name: STAGE_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: p12n
-              key: stage-token
-        - name: TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: p12n
-              key: token            
+              key: brew-password            
