@@ -50,13 +50,6 @@ sed -e "s/\$PSI_CLOUD_USERNAME/$PSI_CLOUD_USERNAME/g" \
     -e "s/\$PSI_CLOUD_PASSWORD/$PSI_CLOUD_PASSWORD/g" \
     "$DIR/../../ci/secrets/psi.yaml" | oc apply -f -
 
-echo -e "\nConfiguring p12n secrets"
-sed -e "s/\$STAGE_USER/$USERNAME/" \
-    -e "s/\$STAGE_PASSWORD/$PASSWORD/" \
-    -e "s/\$PRE_STAGE_TOKEN/$PRE_STAGE_TOKEN/" \
-    -e "s/\$STAGE_TOKEN/$STAGE_TOKEN/" \
-    "$DIR/../../ci/secrets/p12n.yaml" | oc apply -f -
-
 echo -e "\nConfiguring Flexy secrets"
 sed -e "s/\$AWS_ACCESS_KEY_ID/$AWS_ACCESS_KEY_ID/" \
     -e "s/\$AWS_SECRET_ACCESS_KEY/$AWS_SECRET_ACCESS_KEY/" \
@@ -70,3 +63,8 @@ sed -e "s/\$AWS_ACCESS_KEY_ID/$AWS_ACCESS_KEY_ID/" \
     -e "s/\$REGISTRY_RH_IO_PASSWORD/$REGISTRY_RH_IO_PASSWORD/g" \
     -e "s/\$SSH_PRIVATE_KEY/$ENCODED_SSH_PRIVATE_KEY/g" \
     "$DIR/../../ci/secrets/flexy.yaml" | oc apply -f -
+
+echo -e "\nConfiguring p12n secrets"
+sed -e "s/\$BREW_USER/$BREW_USER/" \
+    -e "s/\$BREW_PASS/$BREW_PASS/" \
+    "$DIR/../../ci/secrets/p12n.yaml" | oc apply -f -

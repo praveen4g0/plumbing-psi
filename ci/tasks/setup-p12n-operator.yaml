@@ -14,11 +14,24 @@ spec:
       default: pipelines-ci
     - name: OPERATOR_ENVIRONMENT
       type: string
-      description: Specify p12n operator environment (stage, pre-stage, prod)
+      description: |
+          specify p12n operator environment (stage, pre-stage)
+          This task is not designed for `prod` operator environment
       default: pre-stage
     - name: INDEX
       type: string
-      description: Sepcify INDEX number (42312,...)
+      description: |
+          curl -sSL "https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-container-image.index.built&delta=172800&contains=pipelines" |jq ".raw_messages[].msg.index"
+
+          gives you latest index images that has passed CVP tests, provide right index image version based on ocp_version you provision
+          Examples:
+          1. "index_image": "registry-proxy.engineering.redhat.com/rh-osbs/iib:28886", "ocp_version": "v4.5"
+              INDEX=28886
+          2. "index_image": "registry-proxy.engineering.redhat.com/rh-osbs/iib:28887", "ocp_version": "v4.6"
+              INDEX=28887
+          3. "index_image": "registry-proxy.engineering.redhat.com/rh-osbs/iib:28888", "ocp_version": "v4.7"
+              INDEX=28888
+          ....
   steps:
     - name: setup-p12n-operator
       image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
@@ -53,7 +66,7 @@ spec:
           }
 
           INDEX_IMAGE=$BREW_IIB_PREFIX:$INDEX
-          echo -e "Index image: $INDEX_IMAGE"
+          echo -e "index image: $INDEX_IMAGE"
           ENVSTAGE="stage"
 
           if [[ ${ENVIRONMENT} = ${ENVSTAGE} ]]; then 
@@ -66,18 +79,17 @@ spec:
             rm -rf authfile
           }
 
-          oc get secret/pull-secret -n openshift-config -o json | jq -r '.data.".dockerconfigjson"' |
-          base64 -d > authfile
+          oc get secret pull-secret -n openshift-config -o jsonpath={.data."\.dockerconfigjson"} | base64 -d > authfile
           trap reset ERR EXIT
 
-          echo "Loggin to on brew-registry registry"
+          echo "login into brew-registry registry"
           oc registry login  --insecure=true --registry=brew.registry.redhat.io --auth-basic="${USERNAME}:${PASSWORD}" --to=authfile
 
           echo "set brew-registry authtication details to default pull-secret"
           oc set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=authfile
           sleep 3
 
-          echo -e "\nConfiguring imagecontentsourcepolicy.yaml"
+          echo -e "\n configuring imagecontentsourcepolicy.yaml"
           oc apply -f - << EOD
           apiVersion: operator.openshift.io/v1alpha1
           kind: ImageContentSourcePolicy
@@ -147,24 +159,25 @@ spec:
               source: $STAGE_PREFIX/rh-osbs/openshift-pipelines-tech-preview-pipelines-rhel8-operator-metadata
           EOD
 
-          echo ">> waiting for nodes to get restarted.."
+          echo -e "waiting for nodes to get restarted.."
           machines=$(oc get machineconfigpool -o=jsonpath='{.items[*].metadata.name}{" "}')
 
           sleep 60
           for machine in ${machines}; do
-              echo ">> Waiting for machineconfigpool on node $machine to be in state Updated=true && Updating=false"
+              echo -e "waiting for machineconfigpool on node $machine to be in state Updated=true && Updating=false"
               while true; do
                 sleep 3
-                oc wait --for=condition=Updated=True -n openshift-operators machineconfigpool $machine --timeout=5m && oc wait --for=condition=Updating=False -n openshift-operators machineconfigpool $machine --timeout=5m > /dev/null 2>&1 && break
+                oc wait --for=condition=Updated=True -n openshift-operators machineconfigpool $machine --timeout=5m && \
+                oc wait --for=condition=Updating=False -n openshift-operators machineconfigpool $machine --timeout=5m > /dev/null 2>&1 && \
+                break
               done
           done
           
           sleep 3
-          
-          echo -e "Delete default operator sources"
+          echo -e "delete default operator sources"
           oc patch operatorhub.config.openshift.io/cluster -p='{"spec":{"disableAllDefaultSources":true}}' --type=merge
           
-          echo -e "Apply catalog source"
+          echo -e "apply catalog source"
           oc apply -f - << EOD
           apiVersion: operators.coreos.com/v1alpha1
           kind: CatalogSource
@@ -180,6 +193,14 @@ spec:
               registryPoll:
                 interval: 20m
           EOD
+          
+          sleep 15
+          echo "waiting for pods in namespace openshift-marketplace to be ready...."
+          pods=$(oc -n openshift-marketplace get pods | awk '{print $1}' | grep pre-stage-operators)
+          for pod in ${pods}; do
+              echo "waiting for pod $pod in opesnhift-marketplace to be in ready state"
+              oc wait --for=condition=Ready -n openshift-marketplace pod $pod --timeout=5m
+          done
       env:
         - name: BREW_USER
           valueFrom:
@@ -190,4 +211,4 @@ spec:
           valueFrom:
             secretKeyRef:
               name: p12n
-              key: brew-password            
+              key: brew-password

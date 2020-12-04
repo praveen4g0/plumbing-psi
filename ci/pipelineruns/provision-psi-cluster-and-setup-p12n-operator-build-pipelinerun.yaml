@@ -8,29 +8,21 @@ spec:
   timeout: 1h
   params:
   - name: OPENSHIFT_INSTALLER_IMAGE
-    value: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.2
+    value: quay.io/praveen4g0/release-tests-bootstrap-image:v1.2.0
   - name: OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE
-    value: rhcos-4.5
+    value: ""
   - name: CLUSTER_NAME
     value: pipelines-ci
   - name: REPLICAS
     value: "2"
   - name: OPERATOR_ENVIRONMENT
-    value: prod
-  - name: CSV_VERSION
-    value: "1.1.1"
+    value: pre-stage
+  - name: INDEX
+    value: "28723"
   workspaces:
   - name: install-dir
-    persistentvolumeclaim:
+    persistentVolumeClaim:
       claimName: install-dir
-  - name: p12n-git
-    volumeClaimTemplate:
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 500Mi
   - name: plumbing-git
     volumeClaimTemplate:
       spec:

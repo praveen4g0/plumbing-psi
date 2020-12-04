@@ -18,15 +18,14 @@ spec:
     description: How many replicas for the master and worker node
   - name: OPERATOR_ENVIRONMENT
     type: string
-    description: Specify p12n operator environment (stage, pre-stage, prod)
-  - name: CSV_VERSION
+    description: specify p12n operator environment (eg:stage, pre-stage)
+  - name: INDEX
     type: string
-    description: Sepcify operator CSV version (1.1.1, 1.2.0)
+    description: specify index image (eg:42312,...)
   workspaces:
   - name: install-dir
   - name: aws-secrets
   - name: psi-secrets
-  - name: p12n-git
   - name: plumbing-git
   tasks:
   - name: provision-cluster-psi
@@ -76,44 +75,24 @@ spec:
     - name: install-dir
       workspace: install-dir
     - name: plumbing-git
-      workspace: plumbing-git    
-  - name: clone-p12n-git
+      workspace: plumbing-git
+  - name: setup-p12n-operator
     conditions:
     - conditionRef: check-for-operator-environment
       params:
         - name: OPERATOR_ENVIRONMENT
           value: $(params.OPERATOR_ENVIRONMENT)
     taskRef:
-      name: git-clone
-      kind: ClusterTask
-    runAfter:
-      - provision-cluster-psi  
-    params:
-      - name: url
-        value: https://gitlab.cee.redhat.com/tekton/productize-pipelines.git
-      - name: deleteExisting
-        value: "true"
-      - name: sslVerify
-        value: "false"
-      - name: revision
-        value: master
-    workspaces:
-    - name: output
-      workspace: p12n-git
-  - name: setup-p12n-operator
-    taskRef:
       name: setup-p12n-operator
     runAfter:
-      - clone-p12n-git
+    - setup-testing-accounts
     params:
       - name: CLUSTER_NAME
         value: $(params.CLUSTER_NAME)
       - name: OPERATOR_ENVIRONMENT
         value: $(params.OPERATOR_ENVIRONMENT)
-      - name: CSV_VERSION
-        value: $(params.CSV_VERSION)    
+      - name: INDEX
+        value: $(params.INDEX)    
     workspaces:
       - name: install-dir
         workspace: install-dir
-      - name: p12n-git
-        workspace: p12n-git  

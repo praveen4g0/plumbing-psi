@@ -12,7 +12,7 @@ spec:
     value: pipelines-ci
   workspaces:
   - name: install-dir
-    persistentvolumeclaim:
+    persistentVolumeClaim:
       claimName: install-dir
   - name: aws-secrets
     secret:

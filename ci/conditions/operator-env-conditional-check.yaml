@@ -7,7 +7,7 @@ spec:
   - name: OPERATOR_ENVIRONMENT
     type: string
   check:
-    image: alpine
+    image: registry.redhat.io/ubi8/ubi-minimal:latest
     script: |
         #!/bin/sh
         env=$(echo $(params.OPERATOR_ENVIRONMENT) | tr -s  '[:upper:]'  '[:lower:]')

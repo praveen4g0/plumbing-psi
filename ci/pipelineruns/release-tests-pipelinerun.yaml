@@ -25,7 +25,7 @@ spec:
     value: http://uploader-uploader.apps.cicd.tekton.codereadyqe.com
   workspaces:
   - name: install-dir
-    persistentvolumeclaim:
+    persistentVolumeClaim:
       claimName: install-dir
   - name: plumbing-git
     volumeClaimTemplate:
