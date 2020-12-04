@@ -26,6 +26,8 @@ spec:
           * https://mirror.openshift.com/pub/openshift-v4/clients/ocp-dev-preview
 
         Examples:
+          ""             use template's default value or image specified in LAUNCHER_VARS
+                         (need extra pull secret if using images from registry.svc.ci.openshift.org)
           stable         latest stable release
           stable-4.6     latest stable 4.6 release
           fast-4.6       latest fast 4.6 release (supported, guaranteed to have an upgrade path in the future)
@@ -45,10 +47,25 @@ spec:
     - name: install-cluster
       workingDir: $(workspaces.flexy-output.path)
       image: docker-registry.upshift.redhat.com/flexy/ocp4:v1.2
+<<<<<<< HEAD
+=======
+      securityContext:
+        runAsUser: 185
+        privileged: true
+>>>>>>> c1fa5b7... Flexy task and pipeline
       script: |
         #!/usr/bin/env bash
         set -o pipefail
 
+<<<<<<< HEAD
+=======
+        [[ -z "$(params.CLUSTER_NAME)" ]] && \
+        echo "Cluster name cannot be empty" && exit 1
+
+        [[ -d "$(workspaces.install-dir.path)/$(params.CLUSTER_NAME)" ]] && \
+        echo "Error: OCP cluster already exists" && exit 1
+
+>>>>>>> c1fa5b7... Flexy task and pipeline
         echo "Preparing Flexy configuration"
 
         while read line; do
@@ -64,6 +81,7 @@ spec:
         export LAUNCHER_VARS='$(params.LAUNCHER_VARS)'
         export VARIABLES_LOCATION="$(params.TEMPLATE)"
 
+<<<<<<< HEAD
         MIRROR_URL=https://mirror.openshift.com/pub/openshift-v4/clients/ocp
         if [[ "$(params.OPENSHIFT_VERSION)" == *dev-preview* ]]; then
           URL="${MIRROR_URL}-$(params.OPENSHIFT_VERSION)"
@@ -78,6 +96,24 @@ spec:
         fi
 
         IMAGE={\"installer_payload_image\":\"$IMAGE\"}
+=======
+        if [ ! -z "$(params.OPENSHIFT_VERSION)" ]; then
+          MIRROR_URL=https://mirror.openshift.com/pub/openshift-v4/clients/ocp
+          if [[ "$(params.OPENSHIFT_VERSION)" == *dev-preview* ]]; then
+            URL="${MIRROR_URL}-$(params.OPENSHIFT_VERSION)"
+          else
+            URL="${MIRROR_URL}/$(params.OPENSHIFT_VERSION)"
+          fi
+
+          IMAGE=$(curl ${URL}/release.txt 2>/dev/null | grep "Pull From:" | cut -d" " -f3)
+          if [ $? != 0 ]; then
+            echo "URL ${URL}/release.txt not found."
+            exit 1
+          fi
+
+          IMAGE={\"installer_payload_image\":\"$IMAGE\"}
+        fi
+>>>>>>> c1fa5b7... Flexy task and pipeline
         LAUNCHER_VARS=$(echo "$IMAGE" "$LAUNCHER_VARS" | jq -c -s add)
 
         mkdir config
