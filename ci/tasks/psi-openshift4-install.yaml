@@ -26,11 +26,11 @@ spec:
     - name: OPENSHIFT_INSTALLER_IMAGE
       type: string
       description: openshift installer base image for upi installation
-      default: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.2
+      default: quay.io/praveen4g0/release-tests-bootstrap-image:v1.2.0
     - name: OPENSHIFT_INSTALL_OS_IMAGE_OVERRIDE
       type: string
       description: openshift installer os image
-      default: rhcos-4.5
+      default: ""
   steps:
     - name: setup-psi-infra
       workingDir: $(workspaces.install-dir.path)

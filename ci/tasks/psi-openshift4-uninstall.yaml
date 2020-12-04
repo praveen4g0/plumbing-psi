@@ -22,7 +22,7 @@ spec:
     - name: OPENSHIFT_INSTALLER_IMAGE
       type: string
       description: openshift installer base image for upi installation
-      default: docker.io/praveen4g0/release-tests-bootstrap-image:v1.1.2
+      default: quay.io/praveen4g0/release-tests-bootstrap-image:v1.2.0
   steps:
     - name: psi-ocp-cluster-destroy
       image: $(params.OPENSHIFT_INSTALLER_IMAGE)
