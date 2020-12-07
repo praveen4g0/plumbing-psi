@@ -147,6 +147,8 @@ function run_triggers_tests {
   APP_URL=$(oc get route vote-ui -n $NAMESPACE --template='http://{{.spec.host}}')
   info "Get Application URL: $APP_URL"
 
+  sleep 10
+
   info "Preview vote application state"
   lynx $APP_URL --dump || return $?
 
@@ -163,11 +165,17 @@ function run_triggers_tests {
 
   # Mock vote-api Github push event
   info "Mocking vote-api github push event"
+  # curl -X POST \
+  #   ${url} \
+  # -H 'Content-Type: application/json' \
+  # -H 'X-Hub-Signature: sha1=648f5f80956fa5eb25e91391e91bba88556d05f3' \
+  # -d '{"head_commit": { "id": "master"},"repository":{"url": "https://github.com/openshift-pipelines/vote-api.git", "name": "vote-api"}}'
+
   curl -X POST \
     ${url} \
   -H 'Content-Type: application/json' \
-  -H 'X-Hub-Signature: sha1=648f5f80956fa5eb25e91391e91bba88556d05f3' \
-  -d '{"head_commit": { "id": "master"},"repository":{"url": "https://github.com/openshift-pipelines/vote-api.git", "name": "vote-api"}}'
+  -H 'X-Hub-Signature: sha1=4c57fc5fb93f26aa89caed5e4ef28359bbe58c93' \
+  -d '{"head_commit": { "id": "docker-to-quay"},"repository":{"url": "https://github.com/praveen4g0/vote-api.git", "name": "vote-api"}}'
 
   sleep 5
   # Check for latest pipelinerun logs
@@ -176,11 +184,17 @@ function run_triggers_tests {
 
   # Mock vote-ui Github push event
   info "Mocking vote-ui github push event"
+  # curl -X POST \
+  #   ${url} \
+  # -H 'Content-Type: application/json' \
+  # -H 'X-Hub-Signature: sha1=80c5be2df98752512b86a5fde7ad30981aaf6fc5' \
+  # -d '{"head_commit": { "id": "master"},"repository":{"url": "https://github.com/openshift-pipelines/vote-ui.git", "name": "vote-ui"}}'
+
   curl -X POST \
     ${url} \
   -H 'Content-Type: application/json' \
-  -H 'X-Hub-Signature: sha1=80c5be2df98752512b86a5fde7ad30981aaf6fc5' \
-  -d '{"head_commit": { "id": "master"},"repository":{"url": "https://github.com/openshift-pipelines/vote-ui.git", "name": "vote-ui"}}'
+  -H 'X-Hub-Signature: sha1=c4cc3661744899db3c60039b895b664fb765dc0f' \
+  -d '{"head_commit": { "id": "docker-to-quay"},"repository":{"url": "https://github.com/praveen4g0/vote-ui.git", "name": "vote-ui"}}'
 
   sleep 5
   # Check for latest pipelinerun logs
@@ -189,6 +203,8 @@ function run_triggers_tests {
   
   info "Validate pipelineruns"
   $GOPATH/src/github.com/openshift-pipelines/pipelines-tutorial/demo.sh validate_pipelinerun || return $?
+
+  sleep 10
 
   info "Preview vote application state"
   lynx $APP_URL --dump || return $?
